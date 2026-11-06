@@ -209,6 +209,39 @@ public class CustomBrowserTests
         Assert.Equal(expected, TargetResolver.ParseArgs(text, BrowserTarget.UrlPlaceholder));
 }
 
+public class SetupGuideTests
+{
+    [Theory]
+    [InlineData(false, 3, true, SetupState.NotRegistered)]
+    [InlineData(true, 0, true, SetupState.NoApps)]
+    [InlineData(true, 0, false, SetupState.NoApps)]
+    [InlineData(true, 2, false, SetupState.NotDefault)]
+    [InlineData(true, 2, true, SetupState.Ready)]
+    public void Reports_the_earliest_unfinished_step(bool registered, int apps, bool isDefault, SetupState expected) =>
+        Assert.Equal(expected, SetupGuide.StateOf(registered, apps, isDefault));
+
+    [Fact]
+    public void A_single_app_is_explained_because_it_skips_the_picker()
+    {
+        Assert.Contains("open straight in this app", SetupGuide.Message(".qsys", SetupState.Ready, 1));
+        Assert.Contains("shows the picker", SetupGuide.Message(".qsys", SetupState.Ready, 2));
+    }
+
+    [Theory]
+    [InlineData(SetupState.NotRegistered)]
+    [InlineData(SetupState.NoApps)]
+    [InlineData(SetupState.NotDefault)]
+    [InlineData(SetupState.Ready)]
+    public void Every_state_names_the_file_type(SetupState state) =>
+        Assert.Contains(".qsys", SetupGuide.Message(".qsys", state, 1));
+
+    [Fact]
+    public void The_windows_step_says_the_choice_is_the_users()
+    {
+        Assert.Contains("only you can change that", SetupGuide.Message(".qsys", SetupState.NotDefault, 2));
+    }
+}
+
 public class ShortcutTests
 {
     [Fact]

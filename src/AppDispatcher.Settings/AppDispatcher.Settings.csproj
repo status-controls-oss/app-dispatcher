@@ -2,6 +2,8 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <AssemblyName>AppDispatcher.Settings</AssemblyName>
+    <AssemblyTitle>App Dispatcher Settings</AssemblyTitle>
+    <Product>App Dispatcher</Product>
     <RootNamespace>AppDispatcher.Settings</RootNamespace>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>..\..\assets\AppDispatcher.ico</ApplicationIcon>

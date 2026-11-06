@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using AppDispatcher.Core;
 using Microsoft.Win32;
 
@@ -49,11 +50,43 @@ public partial class SettingsWindow : Window
             StatusText.Text = "Not registered yet.";
         else
         {
-            var pending = _config.Extensions.Count(e => !Registration.IsDefaultFor(e.Extension));
-            StatusText.Text = pending == 0
+            string Named(SetupState state) => string.Join(", ", _config.Extensions.Where(x => StateOf(x) == state).Select(x => x.Extension));
+            var (noApps, notDefault) = (Named(SetupState.NoApps), Named(SetupState.NotDefault));
+            StatusText.Text = noApps.Length + notDefault.Length == 0
                 ? "Registered, and the default for every file type listed below."
-                : $"Registered. Still to choose in Windows Default Apps: {pending} file type(s).";
+                : "Registered." +
+                  (noApps.Length > 0 ? $" Needs apps: {noApps}." : "") +
+                  (notDefault.Length > 0 ? $" Still to choose in Windows Default Apps: {notDefault}." : "");
         }
+    }
+
+    SetupState StateOf(ExtensionRule rule) =>
+        SetupGuide.StateOf(IsRegistered, rule.Targets.Count, Registration.IsDefaultFor(rule.Extension));
+
+    void RefreshGuide()
+    {
+        var ready = false;
+        if (SelectedRule is { } rule)
+        {
+            var state = StateOf(rule);
+            ready = state == SetupState.Ready;
+            GuideText.Text = SetupGuide.Message(rule.Extension, state, rule.Targets.Count);
+            GuideButton.Visibility = state == SetupState.NotDefault ? Visibility.Visible : Visibility.Collapsed;
+        }
+        else
+        {
+            GuideText.Text = "Select a file type, or add one on the left.";
+            GuideButton.Visibility = Visibility.Collapsed;
+        }
+        GuideBanner.Background = new SolidColorBrush(ready ? Color.FromRgb(0xDF, 0xF6, 0xDD) : Color.FromRgb(0xFF, 0xF4, 0xCE));
+    }
+
+    /// <summary>Picks up a default chosen in Windows as soon as the user comes back here.</summary>
+    void Window_Activated(object? s, EventArgs e)
+    {
+        var target = TargetList.SelectedItem as FileTarget;
+        RefreshExtensions(SelectedRule);
+        RefreshTargets(target);
     }
 
     void Register_Click(object s, RoutedEventArgs e) => Guarded(() =>
@@ -97,10 +130,9 @@ public partial class SettingsWindow : Window
 
     void RefreshExtensions(ExtensionRule? select)
     {
-        var registered = IsRegistered;
         var rows = _config.Extensions
             .OrderBy(x => x.Extension, StringComparer.OrdinalIgnoreCase)
-            .Select(x => new ExtensionRow(x, registered && Registration.IsDefaultFor(x.Extension) ? $"{x.Extension}  ✓ default" : x.Extension))
+            .Select(x => new ExtensionRow(x, $"{x.Extension}  {SetupGuide.ListNote(StateOf(x))}".TrimEnd()))
             .ToList();
         ExtensionList.ItemsSource = rows;
         ExtensionList.SelectedItem = rows.FirstOrDefault(r => r.Rule == select);
@@ -113,6 +145,7 @@ public partial class SettingsWindow : Window
         TargetList.ItemsSource = null;
         TargetList.ItemsSource = SelectedRule?.Targets;
         TargetList.SelectedItem = select;
+        RefreshGuide();
     }
 
     void ExtensionList_SelectionChanged(object s, SelectionChangedEventArgs e) => RefreshTargets(null);

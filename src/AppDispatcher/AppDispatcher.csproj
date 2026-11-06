@@ -2,6 +2,9 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <AssemblyName>AppDispatcher</AssemblyName>
+    <!-- The name Windows shows in its "How do you want to open this file?" list. -->
+    <AssemblyTitle>App Dispatcher</AssemblyTitle>
+    <Product>App Dispatcher</Product>
     <RootNamespace>AppDispatcher</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationManifest>app.manifest</ApplicationManifest>
