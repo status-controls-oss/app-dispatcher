@@ -1,42 +1,48 @@
-# Handoff — 2026-11-06 10:06
+# Handoff — 2026-11-06 11:39
 
-**Branch:** feature/file-type-picker (ahead of main, pushed to origin, merge request open)
-**Repo state:** clean
+**Branch:** main (level with origin/main at 65e6a68)
+**Repo state:** clean apart from these handoff files
 
 ## Goal
-Expand Eric's WebDispatch into App Dispatcher: register as the Windows default for chosen file types and links, then show a very fast picker of apps and window modes. Speed is the top requirement, because a slow picker is worse than the Windows context menu.
+Expand Eric's WebDispatch into App Dispatcher: the Windows default for chosen file types and links, showing a very fast picker of apps and window modes. Speed is the top requirement, because a slow picker is worse than the Windows context menu.
 
 ## Status
-- Done, in commit dc4a7c7: Native AOT picker, WPF Settings, shared Core library, 29 passing unit tests, `publish.ps1`, README.
+- Merged to main and in daily use by the operator. The feature branch is deleted.
+- Installed at `%LOCALAPPDATA%\Programs\AppDispatcher`. Config is at `%APPDATA%\AppDispatcher\config.json`.
+- App Dispatcher is the operator's Windows default for `.json` and `.md`, each with Zed and Rider rows. `.json` previously opened in Rider. HTTP/HTTPS status has not been checked.
+- Confirmed by the operator: opening a `.md` under a solution offered the correct `.sln`, and choosing it opened a new window with that solution.
 - Measured with warm caches, process start to visible window: picker ~30 ms, WebDispatch's WPF picker ~450 ms. Cold start not measured.
-- Verified through the published exe with a dummy target app: file picker keys, solution and folder rows, last-used preselection, single-target direct launch, real shell open of a registered `.apdtest` file, registry sync and unregister.
-- Verified with real apps: only Zed's new-window mode.
 - Not verified:
-  - Rider: file landing in the new window after trust is accepted, and the solution row at all.
-  - Choosing App Dispatcher as a real default for `.json` in Default Apps, then double-clicking in Explorer.
+  - Rider solution row when the solution is already open (expected to reuse its window).
+  - Rider folder row: file landing in the new window after trust is accepted.
   - Link flow with a real browser launch, including an "always open" rule.
-  - Elevation fallback (`Launcher.cs`) against real VS Code. Only the ShellExecute path was tested, with a dummy app under AOT.
+  - Elevation fallback (`Launcher.cs`) against real VS Code; no configured file type has a VS Code row yet.
   - Zed existing-window; all VS Code, Notepad++ and Visual Studio modes; DPI changes.
-- Nothing is registered and no `%APPDATA%\AppDispatcher` config exists; test state was removed.
 
 ## Next step
-Run the operator's acceptance test: `.\publish.ps1`, move `artifacts\AppDispatcher` somewhere permanent, run `AppDispatcher.exe`, add `.json` with Zed and Rider rows, click Register, choose App Dispatcher for `.json` in Default Apps, then open a `.json` under a solution and pick the Rider solution row. Confirm the file lands in that solution's window, and fix the Rider presets in `src/AppDispatcher.Core/EditorCatalog.cs` if not.
+No task is in progress; ask the operator what they want next. Candidates: test the unverified items above, or fix the known limitation that opening several selected files shows one picker per file.
 
 ## Blockers / waiting on
 Operator decisions:
-- Whether to remove "Run as administrator" from `Code.exe`. It is set in HKCU AppCompatFlags, causes a UAC prompt on every VS Code open, and is the operator's setting, so leave it unless told otherwise.
-- Whether to merge the open merge request. The operator said branches and merges can be skipped for now, so later work may go straight to main once this lands.
+- Whether to remove "Run as administrator" from `Code.exe`. It is set in HKCU AppCompatFlags and causes a UAC prompt on every VS Code open. Leave it unless told otherwise.
+- Whether merge request !1 needs closing. It may have closed itself, and the page hasn't been checked; `glab` isn't installed and no token is set.
 
 ## Context pointers
 - `README.md` — behaviour, Rider window modes, the speed rationale, known limitations.
 - `src/AppDispatcher/PickerWindow.cs` — hand-painted picker; deliberately no WPF or common controls.
 - `src/AppDispatcher.Core/EditorCatalog.cs` — editor discovery and window-mode presets. Rider ignores `--temp-project` and fails on `--edit` when already running; don't re-add them.
 - `src/AppDispatcher.Core/Registration.cs` — registry layout. Windows requires the user to choose defaults; don't try to set `UserChoice` programmatically.
-- `publish.ps1` — needs the VS C++ tools, and adds `vswhere` to PATH for the AOT linker.
+- `publish.ps1` — needs the VS C++ tools, and adds `vswhere` to PATH for the AOT linker. Its output goes to `artifacts\AppDispatcher`, so copy it to the install folder to update the real install.
+- memory: `skip-branches-for-now.md` — work directly on main for now.
 
 ## Avoid
-- Don't test new flags against the operator's running Rider. The earlier probes logged internal errors and left a stray tab in their window. Use a scratch folder only with their agreement.
+- The real install handles the operator's `.json` and `.md` opens, and its config and registry entries are live. Don't use Unregister, delete the config, or overwrite the install folder while testing without their agreement. Tests that create throwaway config assume none exists, so they no longer apply as written.
+- Don't test new flags against the operator's running Rider. The earlier probes logged internal errors and left a stray tab in their window.
 - Don't run `code --help` here. `code` launches elevated on this machine, and it left a stray `cli.js` Administrator window.
 
 ## Uncommitted files
-none. `WebDispatch.zip` (Eric's original source) and `artifacts/` are present locally but gitignored.
+```
+?? .claude/handoffs/handoff-20261106-113900.md
+ M .claude/handoffs/latest.md
+```
+`WebDispatch.zip` (Eric's original source) and `artifacts/` are present locally but gitignored.

@@ -1,8 +1,8 @@
 # App Dispatcher
 
-Makes Windows ask which app should open a file or link. Register it as the default for a file type, list the apps that make sense for that type, and double-clicking a file shows a picker in about 30 ms.
+Makes Windows ask which app should open a file or link. Register it as the default for a file type, list the apps that make sense for that type, and double-clicking a file shows a picker in well under 100 ms.
 
-It grew out of Eric's WebDispatch, whose link handling it keeps: choosing a browser and profile per link, plus "always open this domain" rules.
+It grew out of Eric's WebDispatch, whose link handling it keeps and extends: links can show a picker of browsers and profiles, or go straight to a default browser, with rules for specific sites either way.
 
 ## Using the picker
 
@@ -27,12 +27,12 @@ Requires the .NET 8 SDK, the .NET 8 Desktop Runtime and the Visual Studio C++ bu
 1. Move `artifacts\AppDispatcher` somewhere permanent, because registration records the exe's path.
 2. Run `AppDispatcher.exe` to open Settings.
 3. On **File types**, add extensions and choose apps for each.
-4. Click **Register**, which is in the banner and on **Windows setup**.
-5. Click **Open Windows Default Apps** and choose App Dispatcher for each type (and HTTP/HTTPS for links). Windows doesn't allow apps to set this themselves. Until you do, Windows may ask how to open that type, or keep using its current app.
+4. Click **Register**, which is in the tab's banner and on **Windows setup**.
+5. Click **Open Windows Default Apps** on the banner or **Windows setup**, and choose App Dispatcher for each type (and HTTP/HTTPS for links). Windows doesn't allow apps to set this themselves. Until you do, Windows may ask how to open that type, or keep using its current app.
 
 The banners on **File types** and **Links** show what's still needed. **Refresh status** checks again, and also looks for newly installed apps and browsers. **Windows has** lists the apps Windows already associates with that type, such as each installed version of an app, so most can be added without finding the program yourself. Microsoft Store apps aren't listed, because they can't be launched by a command line this way.
 
-**Register** also adds **App Dispatcher Settings** to the Start menu, which is the way back to Settings. The picker itself has no Start menu entry, because it only opens when given a file or link.
+**Register** also adds **App Dispatcher Settings** to the Start menu. You can also reach Settings from the gear in the picker, or by running `AppDispatcher.exe` with no arguments. The picker itself has no Start menu entry, because it only opens when given a file or link.
 
 Registration is per-user and needs no admin rights. **Unregister** removes it, along with the Start menu entry. Any file type still set to App Dispatcher then needs a new default chosen in Windows.
 
@@ -90,9 +90,9 @@ Startup time decides whether this is worth using, so the two jobs are built diff
 | The same WPF picker with ReadyToRun | WPF, precompiled | ~440 ms |
 | `AppDispatcher.Settings.exe` | WPF | Not measured; speed doesn't matter here |
 
-Measured from process start to window visible, with warm disk caches. ReadyToRun barely helps because WPF's own startup dominates, and WPF can't be compiled with Native AOT.
+Measured from process start to window visible, with warm disk caches. ReadyToRun barely helps because WPF's own startup dominates, and WPF can't be compiled with Native AOT. A later test that launches and polls from PowerShell reads higher, with medians of 44–62 ms for this picker, so only compare times taken the same way.
 
-To keep it fast, the picker paints before loading icons, which arrive from a background thread. It saves state only after launching the chosen app.
+To keep it fast, the picker paints before loading icons, which arrive from a background thread, and it draws its gear in code rather than loading a symbol font. It saves state only after launching the chosen app. Finding browsers and file handlers scans the registry and disk, so that happens only in Settings.
 
 ## Layout
 
@@ -111,3 +111,5 @@ Config lives in `%APPDATA%\AppDispatcher\config.json`. On first run, link rules 
 - Opening several selected files at once shows one picker per file, because Explorer starts one process per file.
 - x64 only, as `publish.ps1` targets `win-x64`.
 - An app marked "Run as administrator" in its compatibility settings shows a UAC prompt on every open.
+- Link rules ignore the port, so a rule for `localhost` matches every local port.
+- A row stores its program's path. Apps found by catalog (see [Window modes](#window-modes)) are found again after an update moves them, but an added browser or an app from **Windows has** is hidden until you add it again.
