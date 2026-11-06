@@ -75,11 +75,9 @@ public static partial class Registration
         string.Equals(CurrentProgId(extension), ProgId(extension), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Whether Windows currently sends both kinds of web link to us, as chosen by the user.</summary>
+    /// <remarks>Asks Windows rather than reading UserChoice: newer builds record the choice under UserChoiceLatest and leave UserChoice stale.</remarks>
     public static bool IsDefaultForLinks() => new[] { "http", "https" }.All(scheme =>
-    {
-        using var choice = Registry.CurrentUser.OpenSubKey($@"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\{scheme}\UserChoice");
-        return string.Equals(choice?.GetValue("ProgId") as string, UrlProgId, StringComparison.OrdinalIgnoreCase);
-    });
+        string.Equals(CurrentProgId(scheme, AssocfIsProtocol), UrlProgId, StringComparison.OrdinalIgnoreCase));
 
     static string ProgId(string extension) => $"{FileProgIdPrefix}{extension}";
 
@@ -119,6 +117,7 @@ public static partial class Registration
     }
 
     const int AssocStrProgId = 20;
+    const int AssocfIsProtocol = 0x1000;
     const int ShcneAssocChanged = 0x08000000;
 
     [LibraryImport("shlwapi", StringMarshalling = StringMarshalling.Utf16, EntryPoint = "AssocQueryStringW")]
@@ -127,11 +126,11 @@ public static partial class Registration
     [LibraryImport("shell32")]
     private static partial void SHChangeNotify(int eventId, uint flags, nint item1, nint item2);
 
-    static unsafe string? CurrentProgId(string extension)
+    static unsafe string? CurrentProgId(string extension, int flags = 0)
     {
         var buffer = stackalloc char[256];
         uint length = 256;
-        return AssocQueryString(0, AssocStrProgId, extension, null, buffer, ref length) == 0
+        return AssocQueryString(flags, AssocStrProgId, extension, null, buffer, ref length) == 0
             ? new string(buffer)
             : null;
     }
