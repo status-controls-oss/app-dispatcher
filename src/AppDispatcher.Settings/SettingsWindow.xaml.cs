@@ -13,12 +13,15 @@ public partial class SettingsWindow : Window
 
     readonly AppConfig _config = AppConfig.Load();
     readonly string _pickerExe = Path.Combine(AppContext.BaseDirectory, "AppDispatcher.exe");
+    readonly List<CustomBrowser> _detectedBrowsers;
 
     public SettingsWindow()
     {
         InitializeComponent();
         CatalogCombo.ItemsSource = EditorCatalog.Discover();
         CatalogCombo.SelectedIndex = 0;
+        var alreadyListed = BrowserDiscovery.Discover(Array.Empty<CustomBrowser>(), null).Select(b => b.ExePath);
+        _detectedBrowsers = BrowserCatalog.Detect(alreadyListed.Append(_pickerExe));
         RefreshBrowsers();
         RefreshRules();
         RefreshExtensions(_config.Extensions.FirstOrDefault());
@@ -201,37 +204,58 @@ public partial class SettingsWindow : Window
         BrowserCombo.SelectedItem = browsers.FirstOrDefault(b => b.Display == selected) ?? browsers.FirstOrDefault();
         CustomBrowserList.ItemsSource = null;
         CustomBrowserList.ItemsSource = _config.CustomBrowsers;
+
+        // Removing a browser offers it again, because this filters the list found at startup.
+        var offered = _detectedBrowsers
+            .Where(d => !_config.CustomBrowsers.Any(c =>
+                string.Equals(c.Exe, d.Exe, StringComparison.OrdinalIgnoreCase) && c.Args.SequenceEqual(d.Args)))
+            .ToList();
+        var any = offered.Count > 0;
+        DetectedCombo.ItemsSource = any ? offered : new List<CustomBrowser> { new() { Label = "No other browsers found" } };
+        DetectedCombo.SelectedIndex = 0;
+        DetectedCombo.IsEnabled = any;
+        AddDetectedButton.IsEnabled = any;
     }
 
     void BrowseBrowser_Click(object s, RoutedEventArgs e) => BrowseProgram(BrowserExe, BrowserLabel);
 
+    void AddDetected_Click(object s, RoutedEventArgs e)
+    {
+        if (DetectedCombo.SelectedItem is CustomBrowser b) TryAddBrowser(b);
+    }
+
     void AddBrowser_Click(object s, RoutedEventArgs e)
     {
-        var label = BrowserLabel.Text.Trim();
-        var exe = BrowserExe.Text.Trim().Trim('"');
+        var added = TryAddBrowser(new CustomBrowser
+        {
+            Label = BrowserLabel.Text.Trim(),
+            Exe = BrowserExe.Text.Trim().Trim('"'),
+            Args = TargetResolver.ParseArgs(BrowserArgs.Text, BrowserTarget.UrlPlaceholder),
+        });
+        if (!added) return;
+        BrowserLabel.Clear();
+        BrowserExe.Clear();
+        BrowserArgs.Text = BrowserTarget.UrlPlaceholder;
+    }
+
+    bool TryAddBrowser(CustomBrowser browser)
+    {
         var problem =
-            label.Length == 0 ? "Enter a label." :
-            !File.Exists(exe) ? "Choose a program that exists." :
-            string.Equals(exe, _pickerExe, StringComparison.OrdinalIgnoreCase) ? "App Dispatcher can't be one of its own browsers." :
-            _config.CustomBrowsers.Any(b => string.Equals(b.Label, label, StringComparison.OrdinalIgnoreCase)) ? $"There is already a browser called {label}." :
+            browser.Label.Length == 0 ? "Enter a label." :
+            !File.Exists(browser.Exe) ? "Choose a program that exists." :
+            string.Equals(browser.Exe, _pickerExe, StringComparison.OrdinalIgnoreCase) ? "App Dispatcher can't be one of its own browsers." :
+            _config.CustomBrowsers.Any(b => string.Equals(b.Label, browser.Label, StringComparison.OrdinalIgnoreCase)) ? $"There is already a browser called {browser.Label}." :
             null;
         if (problem != null)
         {
             MessageBox.Show(this, problem, "App Dispatcher", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
+            return false;
         }
 
-        _config.CustomBrowsers.Add(new CustomBrowser
-        {
-            Label = label,
-            Exe = exe,
-            Args = TargetResolver.ParseArgs(BrowserArgs.Text, BrowserTarget.UrlPlaceholder),
-        });
+        _config.CustomBrowsers.Add(browser);
         Commit();
-        BrowserLabel.Clear();
-        BrowserExe.Clear();
-        BrowserArgs.Text = BrowserTarget.UrlPlaceholder;
         RefreshBrowsers();
+        return true;
     }
 
     void RemoveBrowser_Click(object s, RoutedEventArgs e)

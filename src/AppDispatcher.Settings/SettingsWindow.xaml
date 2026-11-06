@@ -1,7 +1,7 @@
 <Window x:Class="AppDispatcher.Settings.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="App Dispatcher Settings" Width="780" Height="640" WindowStartupLocation="CenterScreen">
+        Title="App Dispatcher Settings" Width="780" Height="700" WindowStartupLocation="CenterScreen">
     <DockPanel Margin="14">
         <GroupBox Header="Windows registration" DockPanel.Dock="Top" Padding="8">
             <StackPanel>
@@ -79,7 +79,7 @@
 
             <TabItem Header="Links">
                 <DockPanel Margin="8">
-                    <GroupBox Header="Custom browsers (Chrome, Edge and Firefox are detected automatically)" DockPanel.Dock="Bottom" Padding="6" Margin="0,8,0,0">
+                    <GroupBox Header="Other browsers (Chrome, Edge and Firefox are added automatically)" DockPanel.Dock="Bottom" Padding="6" Margin="0,8,0,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="220"/>
@@ -92,19 +92,26 @@
                                 <RowDefinition/>
                                 <RowDefinition/>
                                 <RowDefinition/>
+                                <RowDefinition/>
                             </Grid.RowDefinitions>
-                            <ListBox x:Name="CustomBrowserList" Grid.RowSpan="3" DisplayMemberPath="Label" Margin="0,0,10,4"/>
-                            <Button Grid.Row="3" Content="Remove" HorizontalAlignment="Left" Padding="10,0" Margin="0,0,10,0" Click="RemoveBrowser_Click"/>
+                            <DockPanel Grid.ColumnSpan="4" Margin="0,0,0,8">
+                                <TextBlock Text="Found on this PC" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <Button x:Name="AddDetectedButton" DockPanel.Dock="Right" Content="Add" Padding="8,0" Margin="6,0,0,0" Click="AddDetected_Click"/>
+                                <ComboBox x:Name="DetectedCombo" DisplayMemberPath="Label"/>
+                            </DockPanel>
 
-                            <TextBlock Grid.Column="1" Text="Label" VerticalAlignment="Center" Margin="0,0,8,4"/>
-                            <TextBox x:Name="BrowserLabel" Grid.Column="2" Grid.ColumnSpan="2" Margin="0,0,0,4"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Text="Program" VerticalAlignment="Center" Margin="0,0,8,4"/>
-                            <TextBox x:Name="BrowserExe" Grid.Row="1" Grid.Column="2" Margin="0,0,0,4"/>
-                            <Button Grid.Row="1" Grid.Column="3" Content="Browse…" Padding="8,0" Margin="6,0,0,4" Click="BrowseBrowser_Click"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="Arguments" VerticalAlignment="Center" Margin="0,0,8,4"/>
-                            <TextBox x:Name="BrowserArgs" Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2" Text="{}{url}" Margin="0,0,0,4"
+                            <ListBox x:Name="CustomBrowserList" Grid.Row="1" Grid.RowSpan="3" DisplayMemberPath="Label" Margin="0,0,10,4"/>
+                            <Button Grid.Row="4" Content="Remove" HorizontalAlignment="Left" Padding="10,0" Margin="0,0,10,0" Click="RemoveBrowser_Click"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="Label" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                            <TextBox x:Name="BrowserLabel" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Margin="0,0,0,4"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="Program" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                            <TextBox x:Name="BrowserExe" Grid.Row="2" Grid.Column="2" Margin="0,0,0,4"/>
+                            <Button Grid.Row="2" Grid.Column="3" Content="Browse…" Padding="8,0" Margin="6,0,0,4" Click="BrowseBrowser_Click"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="Arguments" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                            <TextBox x:Name="BrowserArgs" Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="2" Text="{}{url}" Margin="0,0,0,4"
                                      ToolTip="{}{url} is replaced with the link, and added at the end if left out. e.g. --incognito {url}"/>
-                            <Button Grid.Row="3" Grid.Column="3" Content="Add" Padding="8,0" Margin="6,0,0,0" Click="AddBrowser_Click"/>
+                            <Button Grid.Row="4" Grid.Column="3" Content="Add" Padding="8,0" Margin="6,0,0,0" Click="AddBrowser_Click"/>
                         </Grid>
                     </GroupBox>
                     <GroupBox Header="Add rule" DockPanel.Dock="Bottom" Padding="8" Margin="0,8,0,0">

@@ -209,6 +209,126 @@ public class CustomBrowserTests
         Assert.Equal(expected, TargetResolver.ParseArgs(text, BrowserTarget.UrlPlaceholder));
 }
 
+public class BrowserCatalogTests
+{
+    const string Url = BrowserTarget.UrlPlaceholder;
+
+    static BrowserRoots Roots(TempTree tree) =>
+        new(Path.Combine(tree.Root, "local"), Path.Combine(tree.Root, "roaming"), new[] { Path.Combine(tree.Root, "pf") });
+
+    static List<CustomBrowser> Detect(TempTree tree, params RegisteredBrowser[] registered) =>
+        BrowserCatalog.Detect(Roots(tree), registered, Array.Empty<string>());
+
+    [Fact]
+    public void Offers_one_row_per_profile_of_a_chromium_browser()
+    {
+        using var tree = new TempTree();
+        var exe = tree.File(@"pf\BraveSoftware\Brave-Browser\Application\brave.exe");
+        tree.File(@"local\BraveSoftware\Brave-Browser\User Data\Local State",
+            """{ "profile": { "info_cache": { "Default": { "name": "Home" }, "Profile 2": { "name": "Work", "user_name": "me@work" } } } }""");
+
+        var rows = Detect(tree);
+
+        Assert.All(rows, r => Assert.Equal(exe, r.Exe));
+        Assert.Equal(new[] { "Brave — Home", "Brave — Work (me@work)" }, rows.Select(r => r.Label));
+        Assert.Equal(new[] { "--profile-directory=Profile 2", Url }, rows[1].Args);
+    }
+
+    [Fact]
+    public void Offers_one_row_per_profile_of_a_firefox_family_browser()
+    {
+        using var tree = new TempTree();
+        tree.File(@"pf\LibreWolf\librewolf.exe");
+        tree.File(@"roaming\librewolf\profiles.ini", "[General]\nVersion=2\n[Profile0]\nName=dev\nPath=x\n");
+
+        var row = Detect(tree).Single();
+
+        Assert.Equal("LibreWolf — dev", row.Label);
+        Assert.Equal(new[] { "-P", "dev", "-url", Url }, row.Args);
+    }
+
+    [Fact]
+    public void A_browser_with_no_profile_data_still_gets_a_plain_row()
+    {
+        using var tree = new TempTree();
+        tree.File(@"pf\Vivaldi\Application\vivaldi.exe");
+
+        var row = Detect(tree).Single();
+
+        Assert.Equal("Vivaldi", row.Label);
+        Assert.Equal(new[] { Url }, row.Args);
+    }
+
+    [Fact]
+    public void A_registered_install_in_a_custom_folder_is_recognised_and_keeps_its_profiles()
+    {
+        using var tree = new TempTree();
+        var exe = tree.File(@"D\apps\brave.exe");
+        tree.File(@"local\BraveSoftware\Brave-Browser\User Data\Local State",
+            """{ "profile": { "info_cache": { "Default": { "name": "Home" } } } }""");
+
+        var row = Detect(tree, new RegisteredBrowser("Brave", "Brave", $"\"{exe}\"")).Single();
+
+        Assert.Equal(exe, row.Exe);
+        Assert.Equal("Brave — Home", row.Label);
+    }
+
+    [Fact]
+    public void Opera_GX_is_not_mistaken_for_Opera()
+    {
+        using var tree = new TempTree();
+        var exe = tree.File(@"custom\launcher.exe");
+
+        var row = Detect(tree, new RegisteredBrowser("Opera GXStable", "Opera GX Stable", $"\"{exe}\"")).Single();
+
+        Assert.Equal("Opera GX", row.Label);
+    }
+
+    [Fact]
+    public void An_unknown_registered_browser_is_offered_once_under_its_own_name()
+    {
+        using var tree = new TempTree();
+        var exe = tree.File(@"new\newbrowser.exe");
+        var entry = new RegisteredBrowser("NewBrowser", "New Browser", $"\"{exe}\" --flag");
+
+        var row = Detect(tree, entry, entry).Single();
+
+        Assert.Equal("New Browser", row.Label);
+        Assert.Equal(exe, row.Exe);
+        Assert.Equal(new[] { Url }, row.Args);
+    }
+
+    [Fact]
+    public void Skips_listed_browsers_redirectors_pickers_and_entries_that_cannot_run()
+    {
+        using var tree = new TempTree();
+        var chrome = tree.File(@"g\chrome.exe");
+        var ie = tree.File(@"ie\iexplore.exe");
+        var self = tree.File(@"ad\AppDispatcher.exe");
+
+        var rows = BrowserCatalog.Detect(Roots(tree), new[]
+        {
+            new RegisteredBrowser("Google Chrome", "Google Chrome", $"\"{chrome}\""),
+            new RegisteredBrowser("IEXPLORE.EXE", "Internet Explorer", ie),
+            new RegisteredBrowser("AppDispatcher", "App Dispatcher", $"\"{self}\""),
+            new RegisteredBrowser("Gone", "Gone", $"\"{Path.Combine(tree.Root, "gone.exe")}\""),
+            new RegisteredBrowser("Blank", "", ""),
+        }, new[] { chrome.ToUpperInvariant() });
+
+        Assert.Empty(rows);
+    }
+
+    [Theory]
+    [InlineData("\"C:\\Program Files\\B\\b.exe\"", "C:\\Program Files\\B\\b.exe")]
+    [InlineData("\"C:\\Program Files\\B\\b.exe\" --single-argument %1", "C:\\Program Files\\B\\b.exe")]
+    [InlineData("C:\\Program Files\\B\\b.exe -x", "C:\\Program Files\\B\\b.exe")]
+    [InlineData("", null)]
+    [InlineData("\"unterminated", null)]
+    [InlineData("no program here", null)]
+    public void ExeFromCommand_handles_quotes_and_arguments(string command, string? expected) =>
+        Assert.Equal(expected, BrowserCatalog.ExeFromCommand(command));
+}
+
 public class AppConfigTests
 {
     [Theory]

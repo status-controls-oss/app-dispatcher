@@ -85,51 +85,77 @@ public static class BrowserDiscovery
 
     static void AddChromium(List<BrowserTarget> list, string browser, string? exe, string userDataDir)
     {
+        if (exe == null) return;
+        foreach (var (id, name) in ChromiumProfiles(userDataDir))
+            list.Add(new BrowserTarget { Browser = browser, ExePath = exe, ProfileId = id, ProfileName = name });
+    }
+
+    static void AddFirefox(List<BrowserTarget> list, string? exe, string firefoxDir)
+    {
+        if (exe == null) return;
+        foreach (var (id, name) in FirefoxProfiles(firefoxDir))
+            list.Add(new BrowserTarget { Browser = "Firefox", ExePath = exe, ProfileId = id, ProfileName = name });
+    }
+
+    /// <summary>A Chromium browser's profiles, or none if its Local State is missing or unreadable.</summary>
+    internal static List<(string Id, string Name)> ChromiumProfiles(string userDataDir)
+    {
+        var profiles = new List<(string Id, string Name)>();
         var localState = Path.Combine(userDataDir, "Local State");
-        if (exe == null || !File.Exists(localState)) return;
+        if (!File.Exists(localState)) return profiles;
         try
         {
             using var doc = JsonDocument.Parse(File.ReadAllText(localState));
             if (!doc.RootElement.TryGetProperty("profile", out var prof) ||
-                !prof.TryGetProperty("info_cache", out var cache)) return;
+                !prof.TryGetProperty("info_cache", out var cache)) return profiles;
             foreach (var p in cache.EnumerateObject())
             {
                 var name = p.Value.TryGetProperty("name", out var n) ? n.GetString() : null;
                 var user = p.Value.TryGetProperty("user_name", out var u) ? u.GetString() : null;
                 var display = string.IsNullOrWhiteSpace(name) ? p.Name : name;
                 if (!string.IsNullOrWhiteSpace(user)) display += $" ({user})";
-                list.Add(new BrowserTarget { Browser = browser, ExePath = exe, ProfileId = p.Name, ProfileName = display });
+                profiles.Add((p.Name, display));
             }
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
-            // Unreadable Local State: skip this browser.
+            // Unreadable Local State: treat as having no profiles.
         }
+        return profiles;
     }
 
-    static void AddFirefox(List<BrowserTarget> list, string? exe, string firefoxDir)
+    /// <summary>A Firefox-family browser's profiles, or none if its profiles.ini is missing or unreadable.</summary>
+    internal static List<(string Id, string Name)> FirefoxProfiles(string firefoxDir)
     {
+        var profiles = new List<(string Id, string Name)>();
         var ini = Path.Combine(firefoxDir, "profiles.ini");
-        if (exe == null || !File.Exists(ini)) return;
+        if (!File.Exists(ini)) return profiles;
         string? name = null;
         bool inProfile = false;
         void Flush()
         {
-            if (inProfile && !string.IsNullOrEmpty(name))
-                list.Add(new BrowserTarget { Browser = "Firefox", ExePath = exe, ProfileId = name, ProfileName = name });
+            if (inProfile && !string.IsNullOrEmpty(name)) profiles.Add((name, name));
             name = null;
         }
-        foreach (var raw in File.ReadLines(ini))
+        try
         {
-            var line = raw.Trim();
-            if (line.StartsWith('['))
+            foreach (var raw in File.ReadLines(ini))
             {
-                Flush();
-                inProfile = line.StartsWith("[Profile", StringComparison.OrdinalIgnoreCase);
+                var line = raw.Trim();
+                if (line.StartsWith('['))
+                {
+                    Flush();
+                    inProfile = line.StartsWith("[Profile", StringComparison.OrdinalIgnoreCase);
+                }
+                else if (inProfile && line.StartsWith("Name=", StringComparison.OrdinalIgnoreCase))
+                    name = line[5..];
             }
-            else if (inProfile && line.StartsWith("Name=", StringComparison.OrdinalIgnoreCase))
-                name = line[5..];
+            Flush();
         }
-        Flush();
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Unreadable profiles.ini: keep whatever was read before the failure.
+        }
+        return profiles;
     }
 }

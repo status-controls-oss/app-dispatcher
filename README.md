@@ -60,7 +60,11 @@ Declining Rider's trust prompt still opens the file, in your current Rider windo
 
 Every link opens the picker unless its domain has an "Always open" rule. Chrome, Edge and Firefox are detected automatically, with one row per profile.
 
-To add any other browser, use **Custom browsers** on the Links tab in Settings. Give it a label, a program and arguments. `{url}` is replaced with the link, and is added at the end if you leave it out, for example `--incognito {url}`. Add one entry per profile or mode you want as a row. Custom browsers appear after the detected ones, and a custom browser whose program is missing is hidden. Removing a custom browser also removes its "Always open" rules.
+To add any other browser, use **Other browsers** on the Links tab in Settings. **Found on this PC** offers browsers registered with Windows, plus common ones from a built-in list, with one entry per profile where the profiles can be read. Detection runs only in Settings, so it never slows the picker.
+
+To add one by hand, give it a label, a program and arguments. `{url}` is replaced with the link, and is added at the end if you leave it out, for example `--incognito {url}`. Add one entry per profile or mode you want as a row.
+
+These browsers appear after Chrome, Edge and Firefox, and one whose program is missing is hidden. Removing one also removes its "Always open" rules.
 
 ## Why two executables
 
