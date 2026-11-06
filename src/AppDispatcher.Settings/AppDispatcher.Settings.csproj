@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>AppDispatcher.Settings</AssemblyName>
+    <RootNamespace>AppDispatcher.Settings</RootNamespace>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AppDispatcher.Core\AppDispatcher.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,126 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace AppDispatcher.Core;
+
+/// <summary>An "always open this domain in this browser profile" rule.</summary>
+public class Rule
+{
+    public string Domain { get; set; } = "";
+    public string Browser { get; set; } = "";
+    public string ProfileId { get; set; } = "";
+    public string ProfileName { get; set; } = "";
+}
+
+/// <summary>One row in the picker: an app plus how to invoke it.</summary>
+public class FileTarget
+{
+    public string Label { get; set; } = "";
+    public string Exe { get; set; } = "";
+
+    /// <summary>Arguments; may contain {file}, {dir} and {solution}. See <see cref="TargetResolver"/>.</summary>
+    public List<string> Args { get; set; } = new();
+
+    /// <summary>Catalog id, used to find the exe again when an update moves it. Null for custom apps.</summary>
+    public string? AppId { get; set; }
+}
+
+public class ExtensionRule
+{
+    public string Extension { get; set; } = "";
+    public List<FileTarget> Targets { get; set; } = new();
+    public string? LastTargetLabel { get; set; }
+}
+
+public class AppConfig
+{
+    public List<Rule> Rules { get; set; } = new();
+    public string? LastBrowser { get; set; }
+    public string? LastProfileId { get; set; }
+    public List<ExtensionRule> Extensions { get; set; } = new();
+
+    static string AppData => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+    /// <summary>Overridable so tests never touch the real config.</summary>
+    public static string PathOnDisk { get; set; } = Path.Combine(AppData, "AppDispatcher", "config.json");
+
+    static readonly string LegacyPath = Path.Combine(AppData, "WebDispatch", "config.json");
+
+    public static AppConfig Load()
+    {
+        var path = File.Exists(PathOnDisk) ? PathOnDisk : File.Exists(LegacyPath) ? LegacyPath : null;
+        if (path == null) return new AppConfig();
+        try
+        {
+            return JsonSerializer.Deserialize(File.ReadAllText(path), ConfigJson.Default.AppConfig) ?? new AppConfig();
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            // Keep the unreadable file: the next Save would otherwise destroy it.
+            try { File.Copy(path, path + ".bad", overwrite: true); } catch (IOException) { }
+            return new AppConfig();
+        }
+    }
+
+    public void Save()
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(PathOnDisk)!);
+        var temp = PathOnDisk + ".tmp";
+        File.WriteAllText(temp, JsonSerializer.Serialize(this, ConfigJson.Default.AppConfig));
+        File.Move(temp, PathOnDisk, overwrite: true);
+    }
+
+    /// <summary>
+    /// Re-reads, changes and saves. The picker uses this because it can stay open for minutes,
+    /// and saving its startup copy would discard anything changed in Settings meanwhile.
+    /// </summary>
+    public static void Update(Action<AppConfig> change)
+    {
+        var fresh = Load();
+        change(fresh);
+        fresh.Save();
+    }
+
+    public static string NormalizeDomain(string d)
+    {
+        d = d.Trim().ToLowerInvariant();
+        if (d.StartsWith("*.")) d = d[2..];
+        return d.Trim('.');
+    }
+
+    /// <summary>A rule for "example.com" matches example.com and any subdomain. Most specific rule wins.</summary>
+    public Rule? FindRule(string host)
+    {
+        host = host.ToLowerInvariant();
+        return Rules
+            .Where(r => host == r.Domain || host.EndsWith("." + r.Domain))
+            .OrderByDescending(r => r.Domain.Length)
+            .FirstOrDefault();
+    }
+
+    /// <summary>Adds or replaces a rule in memory; the caller saves.</summary>
+    public void SetRule(string domain, string browser, string profileId, string profileName)
+    {
+        domain = NormalizeDomain(domain);
+        if (domain.Length == 0) return;
+        Rules.RemoveAll(r => r.Domain == domain);
+        Rules.Add(new Rule { Domain = domain, Browser = browser, ProfileId = profileId, ProfileName = profileName });
+        Rules.Sort((a, b) => string.Compare(a.Domain, b.Domain, StringComparison.Ordinal));
+    }
+
+    /// <summary>Returns ".json" for "json", "*.JSON" or ".json"; null if it isn't a usable extension.</summary>
+    public static string? NormalizeExtension(string raw)
+    {
+        var e = raw.Trim().ToLowerInvariant();
+        if (e.StartsWith('*')) e = e[1..];
+        if (!e.StartsWith('.')) e = "." + e;
+        return e.Length > 1 && e.Skip(1).All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-' or '+') ? e : null;
+    }
+
+    public ExtensionRule? FindExtension(string extension) =>
+        Extensions.FirstOrDefault(x => string.Equals(x.Extension, extension, StringComparison.OrdinalIgnoreCase));
+}
+
+[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSerializable(typeof(AppConfig))]
+internal partial class ConfigJson : JsonSerializerContext;
