@@ -15,6 +15,13 @@ public partial class SettingsWindow : Window
     readonly string _pickerExe = Path.Combine(AppContext.BaseDirectory, "AppDispatcher.exe");
     readonly List<CustomBrowser> _detectedBrowsers;
 
+    static SettingsWindow()
+    {
+        // Help should appear promptly and stay long enough to read; the defaults are slower and only 5 seconds.
+        ToolTipService.InitialShowDelayProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(300));
+        ToolTipService.ShowDurationProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(30000));
+    }
+
     public SettingsWindow()
     {
         InitializeComponent();
@@ -49,9 +56,17 @@ public partial class SettingsWindow : Window
         }
     }
 
-    void Register_Click(object s, RoutedEventArgs e) => Guarded(() => Registration.Sync(_pickerExe, _config.Extensions));
+    void Register_Click(object s, RoutedEventArgs e) => Guarded(() =>
+    {
+        Registration.Sync(_pickerExe, _config.Extensions);
+        Shortcut.Create(Shortcut.StartMenuPath, Environment.ProcessPath!, "Choose which apps App Dispatcher offers for files and links.");
+    });
 
-    void Unregister_Click(object s, RoutedEventArgs e) => Guarded(Registration.Unregister);
+    void Unregister_Click(object s, RoutedEventArgs e) => Guarded(() =>
+    {
+        Registration.Unregister();
+        Shortcut.Delete(Shortcut.StartMenuPath);
+    });
 
     void Refresh_Click(object s, RoutedEventArgs e) => RefreshExtensions(SelectedRule);
 
@@ -61,7 +76,7 @@ public partial class SettingsWindow : Window
     void Guarded(Action action)
     {
         try { action(); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException or System.Runtime.InteropServices.COMException)
         {
             MessageBox.Show(this, ex.Message, "App Dispatcher", MessageBoxButton.OK, MessageBoxImage.Error);
         }

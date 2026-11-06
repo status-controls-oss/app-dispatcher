@@ -209,6 +209,31 @@ public class CustomBrowserTests
         Assert.Equal(expected, TargetResolver.ParseArgs(text, BrowserTarget.UrlPlaceholder));
 }
 
+public class ShortcutTests
+{
+    [Fact]
+    public void Creates_a_shortcut_Windows_can_read_and_can_replace_and_delete_it()
+    {
+        using var tree = new TempTree();
+        var first = tree.File(@"a b\first.exe");
+        var second = tree.File(@"a b\second.exe");
+        var path = Path.Combine(tree.Root, "App.lnk");
+
+        Shortcut.Create(path, first, "Old");
+        Shortcut.Create(path, second, "New");
+
+        dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell")!)!;
+        dynamic link = shell.CreateShortcut(path);
+        Assert.Equal(second, (string)link.TargetPath, ignoreCase: true);
+        Assert.Equal(Path.GetDirectoryName(second), (string)link.WorkingDirectory, ignoreCase: true);
+        Assert.Equal("New", (string)link.Description);
+
+        Shortcut.Delete(path);
+        Assert.False(File.Exists(path));
+        Shortcut.Delete(path); // Unregistering twice must not fail.
+    }
+}
+
 public class BrowserCatalogTests
 {
     const string Url = BrowserTarget.UrlPlaceholder;

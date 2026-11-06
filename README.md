@@ -30,7 +30,9 @@ Requires the .NET 8 SDK, the .NET 8 Desktop Runtime and the Visual Studio C++ bu
 4. Click **Register**.
 5. Click **Open Windows Default Apps** and choose App Dispatcher for each type (and HTTP/HTTPS for links). Windows doesn't allow apps to set this themselves.
 
-Registration is per-user and needs no admin rights. **Unregister** removes it. Any file type still set to App Dispatcher then needs a new default chosen in Windows.
+**Register** also adds **App Dispatcher Settings** to the Start menu, which is the way back to Settings. The picker itself has no Start menu entry, because it only opens when given a file or link.
+
+Registration is per-user and needs no admin rights. **Unregister** removes it, along with the Start menu entry. Any file type still set to App Dispatcher then needs a new default chosen in Windows.
 
 ## Window modes
 

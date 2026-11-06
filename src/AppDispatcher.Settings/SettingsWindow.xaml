@@ -7,10 +7,14 @@
             <StackPanel>
                 <TextBlock x:Name="StatusText" Margin="0,0,0,6" TextWrapping="Wrap"/>
                 <StackPanel Orientation="Horizontal">
-                    <Button Content="Register" Padding="10,3" Click="Register_Click"/>
-                    <Button Content="Unregister" Padding="10,3" Margin="8,0,0,0" Click="Unregister_Click"/>
-                    <Button Content="Open Windows Default Apps…" Padding="10,3" Margin="8,0,0,0" Click="DefaultApps_Click"/>
-                    <Button Content="Refresh status" Padding="10,3" Margin="8,0,0,0" Click="Refresh_Click"/>
+                    <Button Content="Register" Padding="10,3" Click="Register_Click"
+                            ToolTip="Makes App Dispatcher available to choose as a default app, and adds it to the Start menu. Needs no admin rights, and is safe to click again."/>
+                    <Button Content="Unregister" Padding="10,3" Margin="8,0,0,0" Click="Unregister_Click"
+                            ToolTip="Removes App Dispatcher from Windows and the Start menu. Your settings are kept, but any file type still using it will need a new default app."/>
+                    <Button Content="Open Windows Default Apps…" Padding="10,3" Margin="8,0,0,0" Click="DefaultApps_Click"
+                            ToolTip="Opens the Windows page where you choose App Dispatcher for each file type and for HTTP and HTTPS links. Windows only lets you make this choice yourself."/>
+                    <Button Content="Refresh status" Padding="10,3" Margin="8,0,0,0" Click="Refresh_Click"
+                            ToolTip="Checks again which file types are using App Dispatcher. Use this after changing defaults in Windows."/>
                 </StackPanel>
                 <TextBlock Margin="0,6,0,0" TextWrapping="Wrap" Foreground="Gray"
                            Text="Registering makes App Dispatcher selectable. Then choose it for each file type (and HTTP/HTTPS) in Windows Default Apps; Windows doesn't let apps set this themselves."/>
@@ -18,7 +22,7 @@
         </GroupBox>
 
         <TabControl Margin="0,8,0,0">
-            <TabItem Header="File types">
+            <TabItem Header="File types" ToolTip="Which apps the picker offers for each kind of file.">
                 <Grid Margin="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="210"/>
@@ -27,12 +31,15 @@
 
                     <DockPanel Grid.Column="0" Margin="0,0,10,0">
                         <TextBlock DockPanel.Dock="Top" Text="Extensions" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <Button DockPanel.Dock="Bottom" Content="Remove extension" Padding="8,3" Margin="0,6,0,0" Click="RemoveExtension_Click"/>
+                        <Button DockPanel.Dock="Bottom" Content="Remove extension" Padding="8,3" Margin="0,6,0,0" Click="RemoveExtension_Click"
+                                ToolTip="Removes the selected file type and its list of apps. If it's still set to App Dispatcher in Windows, choose a new default app for it there."/>
                         <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
-                            <Button DockPanel.Dock="Right" Content="Add" Width="50" Margin="6,0,0,0" Click="AddExtension_Click"/>
-                            <TextBox x:Name="ExtensionBox" VerticalContentAlignment="Center" ToolTip="e.g. .json"/>
+                            <Button DockPanel.Dock="Right" Content="Add" Width="50" Margin="6,0,0,0" Click="AddExtension_Click"
+                                    ToolTip="Adds this file type. Choose apps for it on the right, then set App Dispatcher as its default in Windows."/>
+                            <TextBox x:Name="ExtensionBox" VerticalContentAlignment="Center" ToolTip="A file extension to handle, for example .json"/>
                         </DockPanel>
-                        <ListBox x:Name="ExtensionList" DisplayMemberPath="Display" SelectionChanged="ExtensionList_SelectionChanged"/>
+                        <ListBox x:Name="ExtensionList" DisplayMemberPath="Display" SelectionChanged="ExtensionList_SelectionChanged"
+                                 ToolTip="File types App Dispatcher can open. Select one to edit its apps. &quot;default&quot; means Windows is already sending that type here."/>
                     </DockPanel>
 
                     <DockPanel Grid.Column="1">
@@ -51,33 +58,40 @@
                                     <RowDefinition/>
                                 </Grid.RowDefinitions>
                                 <TextBlock Text="Label" VerticalAlignment="Center" Margin="0,0,8,4"/>
-                                <TextBox x:Name="CustomLabel" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,4"/>
+                                <TextBox x:Name="CustomLabel" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,4"
+                                         ToolTip="The name shown in the picker. {solutionName} is replaced with the file's solution name."/>
                                 <TextBlock Grid.Row="1" Text="Program" VerticalAlignment="Center" Margin="0,0,8,4"/>
-                                <TextBox x:Name="CustomExe" Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"/>
-                                <Button Grid.Row="1" Grid.Column="2" Content="Browse…" Padding="8,0" Margin="6,0,0,4" Click="BrowseExe_Click"/>
+                                <TextBox x:Name="CustomExe" Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"
+                                         ToolTip="The full path of the app's .exe file."/>
+                                <Button Grid.Row="1" Grid.Column="2" Content="Browse…" Padding="8,0" Margin="6,0,0,4" Click="BrowseExe_Click"
+                                        ToolTip="Find the app's .exe file."/>
                                 <TextBlock Grid.Row="2" Text="Arguments" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <TextBox x:Name="CustomArgs" Grid.Row="2" Grid.Column="1" Text="{}{file}"
-                                         ToolTip="Placeholders: {file} {dir} {solution}. A {solution} row only appears when the file has a solution above it."/>
-                                <Button Grid.Row="2" Grid.Column="2" Content="Add" Padding="8,0" Margin="6,0,0,0" Click="AddCustom_Click"/>
+                                         ToolTip="What to pass to the app. {file} is the file's path, {dir} its folder and {solution} its solution. A row using {solution} only appears when the file has a solution above it. {file} is added at the end if you leave it out."/>
+                                <Button Grid.Row="2" Grid.Column="2" Content="Add" Padding="8,0" Margin="6,0,0,0" Click="AddCustom_Click"
+                                        ToolTip="Adds this app to the selected file type."/>
                             </Grid>
                         </GroupBox>
 
                         <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
-                            <Button DockPanel.Dock="Right" Content="Add" Width="50" Margin="6,0,0,0" Click="AddCatalog_Click"/>
-                            <ComboBox x:Name="CatalogCombo" DisplayMemberPath="Label"/>
+                            <Button DockPanel.Dock="Right" Content="Add" Width="50" Margin="6,0,0,0" Click="AddCatalog_Click"
+                                    ToolTip="Adds this app and window mode to the selected file type."/>
+                            <ComboBox x:Name="CatalogCombo" DisplayMemberPath="Label"
+                                      ToolTip="Editors found on this PC, with each way of opening a window they support."/>
                         </DockPanel>
 
                         <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0" Width="70">
-                            <Button Content="Up" Padding="0,3" Click="Up_Click"/>
-                            <Button Content="Down" Padding="0,3" Margin="0,6,0,0" Click="Down_Click"/>
-                            <Button Content="Remove" Padding="0,3" Margin="0,6,0,0" Click="RemoveTarget_Click"/>
+                            <Button Content="Up" Padding="0,3" Click="Up_Click" ToolTip="Moves the selected app up. The order here is the order in the picker."/>
+                            <Button Content="Down" Padding="0,3" Margin="0,6,0,0" Click="Down_Click" ToolTip="Moves the selected app down. The order here is the order in the picker."/>
+                            <Button Content="Remove" Padding="0,3" Margin="0,6,0,0" Click="RemoveTarget_Click" ToolTip="Removes the selected app from this file type."/>
                         </StackPanel>
-                        <ListBox x:Name="TargetList" DisplayMemberPath="Label"/>
+                        <ListBox x:Name="TargetList" DisplayMemberPath="Label"
+                                 ToolTip="The picker's rows for this file type. If only one app is available, the file opens straight away with no picker."/>
                     </DockPanel>
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Links">
+            <TabItem Header="Links" ToolTip="Which browsers the picker offers for links, and which domains skip it.">
                 <DockPanel Margin="8">
                     <GroupBox Header="Other browsers (Chrome, Edge and Firefox are added automatically)" DockPanel.Dock="Bottom" Padding="6" Margin="0,8,0,0">
                         <Grid>
@@ -96,38 +110,52 @@
                             </Grid.RowDefinitions>
                             <DockPanel Grid.ColumnSpan="4" Margin="0,0,0,8">
                                 <TextBlock Text="Found on this PC" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <Button x:Name="AddDetectedButton" DockPanel.Dock="Right" Content="Add" Padding="8,0" Margin="6,0,0,0" Click="AddDetected_Click"/>
-                                <ComboBox x:Name="DetectedCombo" DisplayMemberPath="Label"/>
+                                <Button x:Name="AddDetectedButton" DockPanel.Dock="Right" Content="Add" Padding="8,0" Margin="6,0,0,0" Click="AddDetected_Click"
+                                        ToolTipService.ShowOnDisabled="True" ToolTip="Adds the selected browser to the picker."/>
+                                <ComboBox x:Name="DetectedCombo" DisplayMemberPath="Label"
+                                          ToolTipService.ShowOnDisabled="True"
+                                          ToolTip="Browsers found on this PC that the picker doesn't list yet, with one entry per profile where profiles can be read."/>
                             </DockPanel>
 
-                            <ListBox x:Name="CustomBrowserList" Grid.Row="1" Grid.RowSpan="3" DisplayMemberPath="Label" Margin="0,0,10,4"/>
-                            <Button Grid.Row="4" Content="Remove" HorizontalAlignment="Left" Padding="10,0" Margin="0,0,10,0" Click="RemoveBrowser_Click"/>
+                            <ListBox x:Name="CustomBrowserList" Grid.Row="1" Grid.RowSpan="3" DisplayMemberPath="Label" Margin="0,0,10,4"
+                                     ToolTip="Browsers you've added. They appear in the picker after Chrome, Edge and Firefox."/>
+                            <Button Grid.Row="4" Content="Remove" HorizontalAlignment="Left" Padding="10,0" Margin="0,0,10,0" Click="RemoveBrowser_Click"
+                                    ToolTip="Removes the selected browser from the picker, along with any Always open rules that use it."/>
 
                             <TextBlock Grid.Row="1" Grid.Column="1" Text="Label" VerticalAlignment="Center" Margin="0,0,8,4"/>
-                            <TextBox x:Name="BrowserLabel" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Margin="0,0,0,4"/>
+                            <TextBox x:Name="BrowserLabel" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Margin="0,0,0,4"
+                                     ToolTip="The name shown in the picker."/>
                             <TextBlock Grid.Row="2" Grid.Column="1" Text="Program" VerticalAlignment="Center" Margin="0,0,8,4"/>
-                            <TextBox x:Name="BrowserExe" Grid.Row="2" Grid.Column="2" Margin="0,0,0,4"/>
-                            <Button Grid.Row="2" Grid.Column="3" Content="Browse…" Padding="8,0" Margin="6,0,0,4" Click="BrowseBrowser_Click"/>
+                            <TextBox x:Name="BrowserExe" Grid.Row="2" Grid.Column="2" Margin="0,0,0,4"
+                                     ToolTip="The full path of the browser's .exe file."/>
+                            <Button Grid.Row="2" Grid.Column="3" Content="Browse…" Padding="8,0" Margin="6,0,0,4" Click="BrowseBrowser_Click"
+                                    ToolTip="Find the browser's .exe file."/>
                             <TextBlock Grid.Row="3" Grid.Column="1" Text="Arguments" VerticalAlignment="Center" Margin="0,0,8,4"/>
                             <TextBox x:Name="BrowserArgs" Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="2" Text="{}{url}" Margin="0,0,0,4"
-                                     ToolTip="{}{url} is replaced with the link, and added at the end if left out. e.g. --incognito {url}"/>
-                            <Button Grid.Row="4" Grid.Column="3" Content="Add" Padding="8,0" Margin="6,0,0,0" Click="AddBrowser_Click"/>
+                                     ToolTip="What to pass to the browser. {url} is replaced with the link, and added at the end if you leave it out. For example: --incognito {url}"/>
+                            <Button Grid.Row="4" Grid.Column="3" Content="Add" Padding="8,0" Margin="6,0,0,0" Click="AddBrowser_Click"
+                                    ToolTip="Adds the browser described in these boxes to the picker."/>
                         </Grid>
                     </GroupBox>
                     <GroupBox Header="Add rule" DockPanel.Dock="Bottom" Padding="8" Margin="0,8,0,0">
                         <DockPanel>
-                            <Button DockPanel.Dock="Right" Content="Update selected" Padding="8,0" Margin="8,0,0,0" Click="UpdateRule_Click"/>
-                            <Button DockPanel.Dock="Right" Content="Add" Width="60" Margin="8,0,0,0" Click="AddRule_Click"/>
+                            <Button DockPanel.Dock="Right" Content="Update selected" Padding="8,0" Margin="8,0,0,0" Click="UpdateRule_Click"
+                                    ToolTip="Replaces the rule selected above with this domain and browser."/>
+                            <Button DockPanel.Dock="Right" Content="Add" Width="60" Margin="8,0,0,0" Click="AddRule_Click"
+                                    ToolTip="Adds a rule, so links to this domain open in this browser without showing the picker."/>
                             <TextBox x:Name="DomainBox" Width="180" DockPanel.Dock="Left" VerticalContentAlignment="Center"
-                                     ToolTip="e.g. github.com (includes subdomains)"/>
-                            <ComboBox x:Name="BrowserCombo" Margin="8,0,0,0" DisplayMemberPath="Display"/>
+                                     ToolTip="The domain to match, for example github.com. This includes its subdomains."/>
+                            <ComboBox x:Name="BrowserCombo" Margin="8,0,0,0" DisplayMemberPath="Display"
+                                      ToolTip="The browser and profile that opens links to this domain."/>
                         </DockPanel>
                     </GroupBox>
                     <Button DockPanel.Dock="Bottom" Content="Remove selected rule" HorizontalAlignment="Left" Padding="10,3"
-                            Margin="0,8,0,0" Click="RemoveRule_Click"/>
+                            Margin="0,8,0,0" Click="RemoveRule_Click"
+                            ToolTip="Removes the selected rule, so links to that domain show the picker again."/>
                     <GroupBox Header="Always-open rules" Padding="4">
                         <DataGrid x:Name="RulesGrid" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
-                                  SelectionChanged="RulesGrid_SelectionChanged">
+                                  SelectionChanged="RulesGrid_SelectionChanged"
+                                  ToolTip="Domains that skip the picker. Every other link shows it, so you don't need a rule for each site. The most specific matching domain wins.">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Domain" Binding="{Binding Domain}" Width="200"/>
                                 <DataGridTextColumn Header="Browser" Binding="{Binding Browser}" Width="90"/>
