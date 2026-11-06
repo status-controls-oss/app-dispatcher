@@ -55,8 +55,9 @@ internal static class Program
     {
         var config = AppConfig.Load();
         var browsers = BrowserDiscovery.Discover(config.CustomBrowsers, Environment.ProcessPath);
-        var ruleMatch = config.FindRule(url.Host);
-        var target = ruleMatch == null ? null : browsers.FirstOrDefault(b => b.Matches(ruleMatch.Browser, ruleMatch.ProfileId));
+        // A browser that's no longer available falls through to the picker rather than losing the link.
+        var direct = config.BrowserWithoutAsking(url);
+        var target = direct is { } d ? browsers.FirstOrDefault(b => b.Matches(d.Browser, d.ProfileId)) : null;
         if (target != null)
             return TryLaunch(() => target.Launch(url)) ? 0 : 1;
 

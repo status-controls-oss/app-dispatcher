@@ -62,7 +62,16 @@ Declining Rider's trust prompt still opens the file, in your current Rider windo
 
 ## Browsers
 
-Every link opens the picker unless its domain has an "Always open" rule. Chrome, Edge and Firefox are detected automatically, with one row per profile.
+**Links without a rule**, at the top of the Links tab, decides what most links do: show the picker, or open a chosen browser straight away. Rules then handle the exceptions, either way round:
+
+| Links without a rule | Add a rule to |
+|---|---|
+| Show the picker | Send a site straight to one browser |
+| A chosen browser | Show the picker for a site, or send it to a different browser |
+
+A rule matches a domain and its subdomains, such as `github.com`. Adding a path, such as `github.com/myorg`, matches only that part of the site. You can also paste a whole link. When several rules match, the most specific one wins. If a rule's browser is no longer available, the picker opens instead.
+
+Chrome, Edge and Firefox are detected automatically, with one row per profile.
 
 To add any other browser, use **Other browsers** on the Links tab in Settings. **Found on this PC** offers browsers registered with Windows, plus common ones from a built-in list, with one entry per profile where the profiles can be read. Detection runs only in Settings, so it never slows the picker.
 

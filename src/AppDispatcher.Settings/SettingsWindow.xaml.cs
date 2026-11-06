@@ -16,6 +16,7 @@ public partial class SettingsWindow : Window
     readonly string _pickerExe = Path.Combine(AppContext.BaseDirectory, "AppDispatcher.exe");
     readonly List<CustomBrowser> _detectedBrowsers;
     readonly Dictionary<string, List<FileTarget>> _fileHandlers = new(StringComparer.OrdinalIgnoreCase);
+    bool _loadingDefaultLink;
 
     static SettingsWindow()
     {
@@ -276,8 +277,20 @@ public partial class SettingsWindow : Window
     {
         var selected = (BrowserCombo.SelectedItem as BrowserTarget)?.Display;
         var browsers = BrowserDiscovery.Discover(_config.CustomBrowsers, _pickerExe);
-        BrowserCombo.ItemsSource = browsers;
-        BrowserCombo.SelectedItem = browsers.FirstOrDefault(b => b.Display == selected) ?? browsers.FirstOrDefault();
+        var showPicker = new BrowserTarget { Browser = Rule.ShowPicker };
+        var options = browsers.Prepend(showPicker).ToList();
+        BrowserCombo.ItemsSource = options;
+        // With a default browser set, a new rule is most likely an exception that should ask.
+        BrowserCombo.SelectedItem = options.FirstOrDefault(b => b.Display == selected)
+            ?? (_config.DefaultBrowser == null ? browsers.FirstOrDefault() ?? showPicker : showPicker);
+
+        _loadingDefaultLink = true;
+        DefaultLinkCombo.ItemsSource = options;
+        DefaultLinkCombo.SelectedItem = _config.DefaultBrowser == null
+            ? showPicker
+            : browsers.FirstOrDefault(b => b.Matches(_config.DefaultBrowser, _config.DefaultProfileId ?? "")) ?? showPicker;
+        _loadingDefaultLink = false;
+
         CustomBrowserList.ItemsSource = null;
         CustomBrowserList.ItemsSource = _config.CustomBrowsers;
 
@@ -291,6 +304,15 @@ public partial class SettingsWindow : Window
         DetectedCombo.SelectedIndex = 0;
         DetectedCombo.IsEnabled = any;
         AddDetectedButton.IsEnabled = any;
+    }
+
+    void DefaultLink_SelectionChanged(object s, SelectionChangedEventArgs e)
+    {
+        if (_loadingDefaultLink || DefaultLinkCombo.SelectedItem is not BrowserTarget t) return;
+        var asks = t.Browser == Rule.ShowPicker;
+        _config.DefaultBrowser = asks ? null : t.Browser;
+        _config.DefaultProfileId = asks ? null : t.ProfileId;
+        Commit();
     }
 
     void BrowseBrowser_Click(object s, RoutedEventArgs e) => BrowseProgram(BrowserExe, BrowserLabel);
@@ -318,6 +340,7 @@ public partial class SettingsWindow : Window
     {
         var problem =
             browser.Label.Length == 0 ? "Enter a label." :
+            string.Equals(browser.Label, Rule.ShowPicker, StringComparison.OrdinalIgnoreCase) ? "That label is reserved. Choose another." :
             !File.Exists(browser.Exe) ? "Choose a program that exists." :
             string.Equals(browser.Exe, _pickerExe, StringComparison.OrdinalIgnoreCase) ? "App Dispatcher can't be one of its own browsers." :
             _config.CustomBrowsers.Any(b => string.Equals(b.Label, browser.Label, StringComparison.OrdinalIgnoreCase)) ? $"There is already a browser called {browser.Label}." :
@@ -340,6 +363,11 @@ public partial class SettingsWindow : Window
         _config.CustomBrowsers.Remove(b);
         // A rule for a browser that's gone could never fire again.
         _config.Rules.RemoveAll(r => r.Browser == b.Label && r.ProfileId.Length == 0);
+        if (_config.DefaultBrowser == b.Label && string.IsNullOrEmpty(_config.DefaultProfileId))
+        {
+            _config.DefaultBrowser = null;
+            _config.DefaultProfileId = null;
+        }
         Commit();
         RefreshBrowsers();
         RefreshRules();

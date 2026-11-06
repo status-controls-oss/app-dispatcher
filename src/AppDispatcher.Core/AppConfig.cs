@@ -3,9 +3,13 @@ using System.Text.Json.Serialization;
 
 namespace AppDispatcher.Core;
 
-/// <summary>An "always open this domain in this browser profile" rule.</summary>
+/// <summary>What to do with links to a domain or path: open a browser profile, or show the picker.</summary>
 public class Rule
 {
+    /// <summary>Stored as the browser of a rule that shows the picker instead of opening a browser.</summary>
+    public const string ShowPicker = "Show the picker";
+
+    /// <summary>A domain, including its subdomains, optionally with a path: "github.com/myorg".</summary>
     public string Domain { get; set; } = "";
     public string Browser { get; set; } = "";
     public string ProfileId { get; set; } = "";
@@ -47,6 +51,11 @@ public class AppConfig
     public List<Rule> Rules { get; set; } = new();
     public string? LastBrowser { get; set; }
     public string? LastProfileId { get; set; }
+
+    /// <summary>Opens links that have no rule. When null, those links show the picker.</summary>
+    public string? DefaultBrowser { get; set; }
+    public string? DefaultProfileId { get; set; }
+
     public List<ExtensionRule> Extensions { get; set; } = new();
     public List<CustomBrowser> CustomBrowsers { get; set; } = new();
 
@@ -92,21 +101,54 @@ public class AppConfig
         fresh.Save();
     }
 
+    /// <summary>Reduces a typed domain or pasted link to "host" or "host/path".</summary>
     public static string NormalizeDomain(string d)
     {
         d = d.Trim().ToLowerInvariant();
+        var scheme = d.IndexOf("://", StringComparison.Ordinal);
+        if (scheme >= 0) d = d[(scheme + 3)..];
+        var query = d.IndexOfAny(new[] { '?', '#' });
+        if (query >= 0) d = d[..query];
         if (d.StartsWith("*.")) d = d[2..];
-        return d.Trim('.');
+
+        var slash = d.IndexOf('/');
+        var host = slash < 0 ? d : d[..slash];
+        var path = slash < 0 ? "" : d[slash..].TrimEnd('/');
+        var port = host.IndexOf(':');
+        if (port >= 0) host = host[..port];
+        return host.Trim('.') + path;
     }
 
-    /// <summary>A rule for "example.com" matches example.com and any subdomain. Most specific rule wins.</summary>
-    public Rule? FindRule(string host)
+    /// <summary>
+    /// A rule for "example.com" matches example.com and any subdomain, and a rule for
+    /// "example.com/team" also needs that path or one below it. Most specific rule wins.
+    /// </summary>
+    public Rule? FindRule(string host, string path = "/")
     {
         host = host.ToLowerInvariant();
         return Rules
-            .Where(r => host == r.Domain || host.EndsWith("." + r.Domain))
+            .Where(r => RuleMatches(r.Domain, host, path))
             .OrderByDescending(r => r.Domain.Length)
             .FirstOrDefault();
+    }
+
+    static bool RuleMatches(string rule, string host, string path)
+    {
+        var slash = rule.IndexOf('/');
+        var ruleHost = slash < 0 ? rule : rule[..slash];
+        if (host != ruleHost && !host.EndsWith("." + ruleHost)) return false;
+        if (slash < 0) return true;
+        var rulePath = rule[slash..];
+        return path.Equals(rulePath, StringComparison.OrdinalIgnoreCase) ||
+               path.StartsWith(rulePath + "/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>The browser that opens this link straight away, or null if it should show the picker.</summary>
+    public (string Browser, string ProfileId)? BrowserWithoutAsking(Uri url)
+    {
+        if (FindRule(url.Host, url.AbsolutePath) is { } rule)
+            return rule.Browser == Rule.ShowPicker ? null : (rule.Browser, rule.ProfileId);
+        return DefaultBrowser == null ? null : (DefaultBrowser, DefaultProfileId ?? "");
     }
 
     /// <summary>Adds or replaces a rule in memory; the caller saves.</summary>

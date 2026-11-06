@@ -108,8 +108,13 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Links" ToolTip="Which browsers the picker offers for links, and which domains skip it.">
+            <TabItem Header="Links" ToolTip="What happens when a link opens, and which browsers the picker offers.">
                 <DockPanel Margin="8">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <TextBlock Text="Links without a rule" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="DefaultLinkCombo" DisplayMemberPath="Display" SelectionChanged="DefaultLink_SelectionChanged"
+                                  ToolTip="What happens to a link that no rule below matches. Show the picker to choose each time, or pick a browser to open those links straight away and use rules for the exceptions."/>
+                    </DockPanel>
                     <GroupBox Header="Other browsers (Chrome, Edge and Firefox are added automatically)" DockPanel.Dock="Bottom" Padding="6" Margin="0,8,0,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -159,23 +164,23 @@
                             <Button DockPanel.Dock="Right" Content="Update selected" Padding="8,0" Margin="8,0,0,0" Click="UpdateRule_Click"
                                     ToolTip="Replaces the rule selected above with this domain and browser."/>
                             <Button DockPanel.Dock="Right" Content="Add" Width="60" Margin="8,0,0,0" Click="AddRule_Click"
-                                    ToolTip="Adds a rule, so links to this domain open in this browser without showing the picker."/>
+                                    ToolTip="Adds a rule, so that links matching it do what you've chosen here."/>
                             <TextBox x:Name="DomainBox" Width="180" DockPanel.Dock="Left" VerticalContentAlignment="Center"
-                                     ToolTip="The domain to match, for example github.com. This includes its subdomains."/>
+                                     ToolTip="A domain, which includes its subdomains, such as github.com. Add a path to match only part of a site, such as github.com/myorg. You can also paste a whole link."/>
                             <ComboBox x:Name="BrowserCombo" Margin="8,0,0,0" DisplayMemberPath="Display"
-                                      ToolTip="The browser and profile that opens links to this domain."/>
+                                      ToolTip="Show the picker for matching links, or open them straight away in this browser and profile."/>
                         </DockPanel>
                     </GroupBox>
                     <Button DockPanel.Dock="Bottom" Content="Remove selected rule" HorizontalAlignment="Left" Padding="10,3"
                             Margin="0,8,0,0" Click="RemoveRule_Click"
-                            ToolTip="Removes the selected rule, so links to that domain show the picker again."/>
-                    <GroupBox Header="Always-open rules" Padding="4">
+                            ToolTip="Removes the selected rule, so matching links follow the setting at the top of this tab."/>
+                    <GroupBox Header="Rules for specific links" Padding="4">
                         <DataGrid x:Name="RulesGrid" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
                                   SelectionChanged="RulesGrid_SelectionChanged"
-                                  ToolTip="Domains that skip the picker. Every other link shows it, so you don't need a rule for each site. The most specific matching domain wins.">
+                                  ToolTip="Exceptions to the setting at the top of this tab. When several rules match a link, the most specific one wins.">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Domain" Binding="{Binding Domain}" Width="200"/>
-                                <DataGridTextColumn Header="Browser" Binding="{Binding Browser}" Width="90"/>
+                                <DataGridTextColumn Header="Domain or link" Binding="{Binding Domain}" Width="200"/>
+                                <DataGridTextColumn Header="Action" Binding="{Binding Browser}" Width="110"/>
                                 <DataGridTextColumn Header="Profile" Binding="{Binding ProfileName}" Width="*"/>
                             </DataGrid.Columns>
                         </DataGrid>

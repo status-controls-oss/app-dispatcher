@@ -503,6 +503,85 @@ public class AppConfigTests
         Assert.Equal(expected, config.FindRule(host)?.Domain);
     }
 
+    static (string, string)? Direct(AppConfig config, string url) => config.BrowserWithoutAsking(new Uri(url));
+
+    [Fact]
+    public void With_no_default_browser_links_ask_unless_a_rule_says_otherwise()
+    {
+        var config = new AppConfig();
+        config.SetRule("github.com", "Chrome", "Work", "Work");
+
+        Assert.Null(Direct(config, "https://example.com/"));
+        Assert.Equal(("Chrome", "Work"), Direct(config, "https://github.com/"));
+    }
+
+    [Fact]
+    public void With_a_default_browser_links_open_there_unless_a_rule_says_otherwise()
+    {
+        var config = new AppConfig { DefaultBrowser = "Brave", DefaultProfileId = "Default" };
+        config.SetRule("github.com", Rule.ShowPicker, "", "");
+        config.SetRule("mail.example.com", "Edge", "Default", "Me");
+
+        Assert.Equal(("Brave", "Default"), Direct(config, "https://example.com/"));
+        Assert.Null(Direct(config, "https://github.com/x"));
+        Assert.Null(Direct(config, "https://gist.github.com/"));
+        Assert.Equal(("Edge", "Default"), Direct(config, "https://mail.example.com/"));
+    }
+
+    [Fact]
+    public void A_more_specific_rule_can_undo_a_broader_one()
+    {
+        var config = new AppConfig { DefaultBrowser = "Brave" };
+        config.SetRule("github.com", Rule.ShowPicker, "", "");
+        config.SetRule("github.com/myorg", "Chrome", "Work", "Work");
+        config.SetRule("docs.github.com", "Edge", "Default", "Me");
+
+        Assert.Null(Direct(config, "https://github.com/other"));
+        Assert.Equal(("Chrome", "Work"), Direct(config, "https://github.com/myorg/repo"));
+        Assert.Equal(("Edge", "Default"), Direct(config, "https://docs.github.com/en"));
+    }
+
+    [Theory]
+    [InlineData("/team", true)]
+    [InlineData("/TEAM/page", true)]
+    [InlineData("/team/", true)]
+    [InlineData("/teams", false)]
+    [InlineData("/", false)]
+    public void A_path_rule_matches_that_path_and_below_only(string path, bool matches)
+    {
+        var config = new AppConfig();
+        config.SetRule("example.com/team", "Chrome", "Default", "Me");
+
+        Assert.Equal(matches, config.FindRule("example.com", path) != null);
+    }
+
+    [Theory]
+    [InlineData("GitHub.com", "github.com")]
+    [InlineData("*.github.com", "github.com")]
+    [InlineData("https://github.com/MyOrg/?tab=repos#top", "github.com/myorg")]
+    [InlineData("github.com/myorg/", "github.com/myorg")]
+    [InlineData("http://localhost:3000/app", "localhost/app")]
+    [InlineData(" example.com. ", "example.com")]
+    public void NormalizeDomain_accepts_domains_and_pasted_links(string raw, string expected) =>
+        Assert.Equal(expected, AppConfig.NormalizeDomain(raw));
+
+    [Fact]
+    public void An_existing_config_keeps_showing_the_picker_and_the_default_browser_is_saved()
+    {
+        using var tree = new TempTree();
+        var original = AppConfig.PathOnDisk;
+        AppConfig.PathOnDisk = tree.File("config.json", """{ "Rules": [] }""");
+        try
+        {
+            Assert.Null(AppConfig.Load().BrowserWithoutAsking(new Uri("https://example.com/")));
+
+            AppConfig.Update(c => { c.DefaultBrowser = "Brave"; c.DefaultProfileId = "Default"; });
+
+            Assert.Equal(("Brave", "Default"), AppConfig.Load().BrowserWithoutAsking(new Uri("https://example.com/")));
+        }
+        finally { AppConfig.PathOnDisk = original; }
+    }
+
     [Fact]
     public void Round_trips_and_Update_preserves_changes_made_since_load()
     {
