@@ -28,6 +28,13 @@ A slow picker is worse than the Windows context menu, so time to first paint is 
 - A process's first `ShowWindow` obeys the launcher's `STARTUPINFO`, so the picker calls it twice. Removing that makes it invisible when opened by tools that launch hidden.
 - Rider ignores `--temp-project` and fails on `--edit` when already running. Don't re-add them.
 
+## Security
+
+URLs and file names reach launched apps from untrusted sources, so:
+
+- `Launcher.CanLaunch` allows only `.exe` targets, and not `cmd.exe`. Don't weaken it: `cmd.exe` would treat `&` in a link or file name as a new command, and .NET's quoting doesn't prevent that.
+- Pass arguments through `ProcessStartInfo.ArgumentList`, never a built command string.
+
 ## Testing on a machine with a real install
 
 The installed copy may be handling real file and link opens, and its config and registry entries are live.

@@ -24,7 +24,7 @@ public static class TargetResolver
         foreach (var t in targets)
         {
             var exe = File.Exists(t.Exe) ? t.Exe : (t.AppId == null ? null : findExe?.Invoke(t.AppId));
-            if (exe == null || string.Equals(exe, selfExe, StringComparison.OrdinalIgnoreCase)) continue;
+            if (exe == null || !Launcher.CanLaunch(exe) || string.Equals(exe, selfExe, StringComparison.OrdinalIgnoreCase)) continue;
 
             var usesSolution = t.Label.Contains(SolutionName) || t.Args.Any(a => a.Contains(Solution));
             if (usesSolution && !solutionSearched)

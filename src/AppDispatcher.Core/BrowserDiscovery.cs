@@ -42,10 +42,10 @@ public static class BrowserDiscovery
         return list;
     }
 
-    /// <summary>Drops an app that is no longer installed, or the dispatcher itself, which would reopen the picker forever.</summary>
+    /// <summary>Drops an app that is no longer installed, a script, or the dispatcher itself, which would reopen the picker forever.</summary>
     public static IEnumerable<BrowserTarget> FromCustom(IEnumerable<CustomBrowser> custom, string? selfExe) =>
         custom
-            .Where(c => File.Exists(c.Exe) && !string.Equals(c.Exe, selfExe, StringComparison.OrdinalIgnoreCase))
+            .Where(c => File.Exists(c.Exe) && Launcher.CanLaunch(c.Exe) && !string.Equals(c.Exe, selfExe, StringComparison.OrdinalIgnoreCase))
             .Select(c => new BrowserTarget { Browser = c.Label, ExePath = c.Exe, CustomArgs = c.Args });
 
     static List<BrowserTarget> DiscoverInstalled()

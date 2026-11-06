@@ -66,7 +66,7 @@ public static class BrowserCatalog
         var candidates = registered
             .Where(r => !NeverOffered.Contains(r.Key))
             .Select(r => (Browser: r, Exe: ExeFromCommand(r.Command)))
-            .Where(c => c.Exe != null && File.Exists(c.Exe))
+            .Where(c => c.Exe != null && File.Exists(c.Exe) && Launcher.CanLaunch(c.Exe))
             .ToList();
 
         foreach (var known in Catalog)

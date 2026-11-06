@@ -209,6 +209,70 @@ public class CustomBrowserTests
         Assert.Equal(expected, TargetResolver.ParseArgs(text, BrowserTarget.UrlPlaceholder));
 }
 
+public class ScriptTargetTests
+{
+    [Theory]
+    [InlineData(@"C:\apps\brave.exe", true)]
+    [InlineData(@"C:\apps\BRAVE.EXE", true)]
+    [InlineData(@"C:\apps\open.cmd", false)]
+    [InlineData(@"C:\apps\open.BAT", false)]
+    [InlineData(@"C:\apps\open.exe.cmd", false)]
+    [InlineData(@"C:\apps\open.com", false)]
+    [InlineData(@"C:\apps\open.ps1", false)]
+    [InlineData(@"C:\apps\open", false)]
+    [InlineData(@"C:\Windows\System32\cmd.exe", false)]
+    [InlineData(@"C:\Windows\System32\CMD.EXE", false)]
+    public void Only_real_programs_can_be_launched(string exe, bool allowed) =>
+        Assert.Equal(allowed, Launcher.CanLaunch(exe));
+
+    [Fact]
+    public void A_crafted_link_cannot_run_commands_through_a_script()
+    {
+        using var tree = new TempTree();
+        var proof = Path.Combine(tree.Root, "ran.txt");
+        var script = tree.File("open.cmd", $"@echo ran>\"{proof}\"");
+        var target = new BrowserTarget { Browser = "Script", ExePath = script, CustomArgs = new[] { "{url}" } };
+
+        var refused = Assert.Throws<System.ComponentModel.Win32Exception>(() => target.Launch(new Uri("https://evil.example/&calc&")));
+
+        Assert.Contains("Only .exe programs", refused.Message);
+        Assert.False(File.Exists(proof));
+    }
+
+    [Fact]
+    public void A_script_in_an_edited_config_gets_no_row()
+    {
+        using var tree = new TempTree();
+        var script = tree.File("open.cmd");
+        var file = tree.File("a.json");
+
+        Assert.Empty(BrowserDiscovery.FromCustom(new[] { new CustomBrowser { Label = "Script", Exe = script, Args = new() { "{url}" } } }, null));
+        Assert.Empty(TargetResolver.Resolve(new[] { new FileTarget { Label = "Script", Exe = script, Args = new() { "{file}" } } }, file));
+    }
+
+    [Fact]
+    public void Scripts_and_cmd_are_not_offered_as_handlers_or_browsers()
+    {
+        using var tree = new TempTree();
+        var script = tree.File("open.cmd");
+        var cmd = tree.File(@"sys\cmd.exe");
+        var handlers = new[]
+        {
+            new RawHandler("Script", $"\"{script}\" \"%1\""),
+            new RawHandler("Shell", $"\"{cmd}\" /c start \"\" \"%1\""),
+        };
+        var browsers = new[]
+        {
+            new RegisteredBrowser("Script", "Script", $"\"{script}\""),
+            new RegisteredBrowser("Shell", "Shell", $"\"{cmd}\""),
+        };
+        var roots = new BrowserRoots(Path.Combine(tree.Root, "local"), Path.Combine(tree.Root, "roaming"), new[] { Path.Combine(tree.Root, "pf") });
+
+        Assert.Empty(FileHandlers.Build(handlers, null, _ => null));
+        Assert.Empty(BrowserCatalog.Detect(roots, browsers, Array.Empty<string>()));
+    }
+}
+
 public class FileHandlersTests
 {
     static string? NoDescription(string exe) => null;

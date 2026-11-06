@@ -6,13 +6,25 @@ namespace AppDispatcher.Core;
 
 public static partial class Launcher
 {
-    const int AnyProcess = -1, ErrorElevationRequired = 740, ErrorCancelled = 1223;
+    const int AnyProcess = -1, ErrorBadExeFormat = 193, ErrorElevationRequired = 740, ErrorCancelled = 1223;
+
+    /// <summary>
+    /// Only real programs can be launched. Windows runs .cmd and .bat files through cmd.exe, which
+    /// treats characters such as &amp; as commands, and .NET's argument quoting doesn't guard against
+    /// that. A crafted link or file name could otherwise run commands.
+    /// </summary>
+    public static bool CanLaunch(string exe) =>
+        string.Equals(Path.GetExtension(exe), ".exe", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(Path.GetFileName(exe), "cmd.exe", StringComparison.OrdinalIgnoreCase);
 
     [LibraryImport("user32")]
     private static partial int AllowSetForegroundWindow(int processId);
 
     public static void Start(string exe, IEnumerable<string> args)
     {
+        if (!CanLaunch(exe))
+            throw new Win32Exception(ErrorBadExeFormat, $"Only .exe programs can be opened, not scripts or cmd.exe:\n{exe}");
+
         // Without this, an already-running editor receiving the file can't take focus and only flashes in the taskbar.
         AllowSetForegroundWindow(AnyProcess);
 

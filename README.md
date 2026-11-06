@@ -111,5 +111,6 @@ Config lives in `%APPDATA%\AppDispatcher\config.json`. On first run, link rules 
 - Opening several selected files at once shows one picker per file, because Explorer starts one process per file.
 - x64 only, as `publish.ps1` targets `win-x64`.
 - An app marked "Run as administrator" in its compatibility settings shows a UAC prompt on every open.
+- Only `.exe` programs can be targets. Scripts such as `.cmd` and `.bat`, and `cmd.exe` itself, are refused, because `cmd.exe` would treat characters in a link or file name as commands. Use the app's own `.exe`, such as `Code.exe` rather than `code.cmd`.
 - Link rules ignore the port, so a rule for `localhost` matches every local port.
 - A row stores its program's path. Apps found by catalog (see [Window modes](#window-modes)) are found again after an update moves them, but an added browser or an app from **Windows has** is hidden until you add it again.

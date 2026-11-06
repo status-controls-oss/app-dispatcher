@@ -12,6 +12,8 @@ public partial class SettingsWindow : Window
 {
     sealed record ExtensionRow(ExtensionRule Rule, string Display);
 
+    const string ProgramNotAllowed = "Choose an .exe program. Scripts such as .cmd and .bat files, and cmd.exe, aren't allowed because a link or file name could run commands through them.";
+
     readonly AppConfig _config = AppConfig.Load();
     readonly string _pickerExe = Path.Combine(AppContext.BaseDirectory, "AppDispatcher.exe");
     List<CustomBrowser> _detectedBrowsers = new();
@@ -263,6 +265,11 @@ public partial class SettingsWindow : Window
     {
         var exe = CustomExe.Text.Trim().Trim('"');
         if (string.IsNullOrWhiteSpace(CustomLabel.Text) || !File.Exists(exe)) return;
+        if (!Launcher.CanLaunch(exe))
+        {
+            MessageBox.Show(this, ProgramNotAllowed, "App Dispatcher", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
         AddTarget(new FileTarget { Label = CustomLabel.Text.Trim(), Exe = exe, Args = TargetResolver.ParseArgs(CustomArgs.Text) });
         CustomLabel.Clear();
         CustomExe.Clear();
@@ -368,6 +375,7 @@ public partial class SettingsWindow : Window
             browser.Label.Length == 0 ? "Enter a label." :
             string.Equals(browser.Label, Rule.ShowPicker, StringComparison.OrdinalIgnoreCase) ? "That label is reserved. Choose another." :
             !File.Exists(browser.Exe) ? "Choose a program that exists." :
+            !Launcher.CanLaunch(browser.Exe) ? ProgramNotAllowed :
             string.Equals(browser.Exe, _pickerExe, StringComparison.OrdinalIgnoreCase) ? "App Dispatcher can't be one of its own browsers." :
             _config.CustomBrowsers.Any(b => string.Equals(b.Label, browser.Label, StringComparison.OrdinalIgnoreCase)) ? $"There is already a browser called {browser.Label}." :
             null;

@@ -25,7 +25,7 @@ public static class FileHandlers
         {
             if (ParseCommand(handler.Command) is not { } command) continue;
             var (exe, args) = command;
-            if (!File.Exists(exe) || string.Equals(exe, selfExe, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!File.Exists(exe) || !Launcher.CanLaunch(exe) || string.Equals(exe, selfExe, StringComparison.OrdinalIgnoreCase)) continue;
             if (rows.Any(r => string.Equals(r.Exe, exe, StringComparison.OrdinalIgnoreCase) && r.Args.SequenceEqual(args))) continue;
 
             var name = new[] { handler.FriendlyName, describe(exe) }.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n));
