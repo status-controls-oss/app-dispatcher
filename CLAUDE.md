@@ -8,7 +8,10 @@ README.md covers what this does and how it's laid out. This file covers what's e
 dotnet test tests\AppDispatcher.Tests   # Unit tests
 .\publish.ps1                           # Builds both exes into artifacts\AppDispatcher; needs the VS C++ tools
 .\assets\make-icon.ps1                  # Regenerates assets\AppDispatcher.ico
+.\package.ps1                           # Publishes, then makes the release zip in artifacts
 ```
+
+Test the installer with a throwaway `-InstallDir` and `-SettingsDir`. `-Uninstall` only removes Windows registration if the copy in `-InstallDir` is the registered one, so that leaves a live install alone.
 
 Publishing is what proves the picker still compiles under Native AOT, so run it as well as the tests when picker or Core code changes.
 

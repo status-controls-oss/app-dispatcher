@@ -18,14 +18,10 @@ The row you used last is preselected. If only one app is available for a file, i
 
 ## Install
 
-Requires the .NET 8 SDK, the .NET 8 Desktop Runtime and the Visual Studio C++ build tools.
+Requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) for Settings. Needs no admin rights.
 
-```powershell
-.\publish.ps1
-```
-
-1. Move `artifacts\AppDispatcher` somewhere permanent, because registration records the exe's path.
-2. Run `AppDispatcher.exe` to open Settings.
+1. Download the zip from this project's GitLab releases and extract it.
+2. Double-click `Install.cmd`. It installs to `%LOCALAPPDATA%\Programs\AppDispatcher` and opens Settings. The files aren't signed, so Windows may show a warning first. To update, run the new version's `Install.cmd`.
 3. On **File types**, add extensions and choose apps for each.
 4. Click **Register**, which is in the tab's banner and on **Windows setup**.
 5. Click **Open Windows Default Apps** on the banner or **Windows setup**, and choose App Dispatcher for each type (and HTTP/HTTPS for links). Windows doesn't allow apps to set this themselves. Until you do, Windows may ask how to open that type, or keep using its current app.
@@ -35,6 +31,21 @@ The banners on **File types** and **Links** show what's still needed. **Refresh 
 **Register** also adds **App Dispatcher Settings** to the Start menu. You can also reach Settings from the gear in the picker, or by running `AppDispatcher.exe` with no arguments. The picker itself has no Start menu entry, because it only opens when given a file or link.
 
 Registration is per-user and needs no admin rights. **Unregister** removes it, along with the Start menu entry. Any file type still set to App Dispatcher then needs a new default chosen in Windows.
+
+### Uninstall
+
+Run `Uninstall.cmd` from the install folder. It removes the registration, the Start menu entry and the program, and keeps your settings. To delete those too, run `install.ps1 -Uninstall -RemoveSettings` in PowerShell. File types and links that used App Dispatcher then need a new default chosen in Windows.
+
+### Build from source
+
+Requires the .NET 8 SDK and the Visual Studio C++ build tools.
+
+```powershell
+.\publish.ps1   # Builds into artifacts\AppDispatcher
+.\package.ps1   # Also makes the release zip, using the version in Directory.Build.props
+```
+
+If you run a build directly, keep it somewhere permanent, because registration records the exe's path.
 
 ## Window modes
 
@@ -102,6 +113,7 @@ src/AppDispatcher           The picker (Native AOT)
 src/AppDispatcher.Settings  The settings window (WPF)
 tests/AppDispatcher.Tests   Unit tests: dotnet test
 assets                      The app icon, and make-icon.ps1, which regenerates it
+installer                   The install and uninstall scripts that ship in the release zip
 ```
 
 Config lives in `%APPDATA%\AppDispatcher\config.json`. On first run, link rules are read from an existing WebDispatch config.
