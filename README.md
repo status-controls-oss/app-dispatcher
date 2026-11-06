@@ -12,6 +12,7 @@ It grew out of Eric's WebDispatch, whose link handling it keeps: choosing a brow
 | Arrows, then `Enter` | Move, then open with the selected row |
 | `Esc` | Cancel |
 | `Space` or `Tab` (links only) | Toggle "Always open" or edit its domain |
+| Gear icon | Close the picker and open Settings; the file or link isn't opened |
 
 The row you used last is preselected. If only one app is available for a file, it opens straight away with no picker.
 
@@ -83,6 +84,7 @@ src/AppDispatcher.Core      Config, target resolution, discovery, registration, 
 src/AppDispatcher           The picker (Native AOT)
 src/AppDispatcher.Settings  The settings window (WPF)
 tests/AppDispatcher.Tests   Unit tests: dotnet test
+assets                      The app icon, and make-icon.ps1, which regenerates it
 ```
 
 Config lives in `%APPDATA%\AppDispatcher\config.json`. On first run, link rules are read from an existing WebDispatch config.

@@ -19,18 +19,23 @@ internal static unsafe class PickerWindow
     const int WidthDip = 460, RowDip = 30, PadDip = 12, HeaderDip = 46, FooterDip = 38, MaxVisibleRows = 14, IconDip = 18;
     const uint WM_ICONS_READY = WM_APP + 1;
     const uint WindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
+    const int GearDip = 16;
+
+    /// <summary>True when the picker was dismissed through its gear button rather than cancelled.</summary>
+    public static bool SettingsRequested { get; private set; }
 
     static string _title = "", _subtitle = "";
     static IReadOnlyList<PickerRow> _rows = Array.Empty<PickerRow>();
     static nint[] _icons = Array.Empty<nint>();
+    static byte[] _gearCoverage = Array.Empty<byte>();
     static nint _hwnd, _edit, _font, _boldFont, _editBrush;
     static int _selected, _firstVisible, _pressedRow = -1;
     static uint _dpi = 96;
-    static bool _showAlways, _always;
+    static bool _showAlways, _always, _gearHot, _gearPressed;
     static PickerResult? _result;
 
     // COLORREF is 0x00BBGGRR.
-    static uint _background, _text, _dimText, _accent, _accentText, _editBackground;
+    static uint _background, _text, _dimText, _accent, _accentText, _editBackground, _gearHover;
 
     /// <summary>Blocks until a row is chosen or the picker is dismissed (null).</summary>
     /// <param name="domain">When non-null, shows the "Always open [domain]" option used for links.</param>
@@ -75,6 +80,9 @@ internal static unsafe class PickerWindow
 
         PlaceAtCursor(cursor);
         LayoutEdit();
+        // A process's first ShowWindow obeys its launcher's STARTUPINFO instead of the argument, and
+        // command-line tools opening a link may ask for hidden. The second call is always honoured.
+        ShowWindow(_hwnd, SW_SHOW);
         ShowWindow(_hwnd, SW_SHOW);
         UpdateWindow(_hwnd);
         SetForegroundWindow(_hwnd);
@@ -139,6 +147,7 @@ internal static unsafe class PickerWindow
         _accent = dark ? 0xA8622Bu : 0xD47800u; // BGR: blue
         _accentText = 0xFFFFFFu;
         _editBackground = dark ? 0x2D2D2Du : 0xFFFFFFu;
+        _gearHover = dark ? 0x3A3A3Au : 0xE6E6E6u;
     }
 
     static void CreateFonts()
@@ -157,6 +166,8 @@ internal static unsafe class PickerWindow
         var size = Scale(IconDip);
         var thread = new Thread(() =>
         {
+            SetWindowIcon(ICON_SMALL, GetSystemMetricsForDpi(SM_CXSMICON, _dpi));
+            SetWindowIcon(ICON_BIG, GetSystemMetricsForDpi(SM_CXICON, _dpi));
             var byExe = new Dictionary<string, nint>(StringComparer.OrdinalIgnoreCase);
             for (var i = 0; i < _rows.Count; i++)
             {
@@ -172,6 +183,79 @@ internal static unsafe class PickerWindow
             PostMessageW(_hwnd, WM_ICONS_READY, 0, 0);
         }) { IsBackground = true };
         thread.Start();
+    }
+
+    static void SetWindowIcon(int kind, int size)
+    {
+        nint icon;
+        uint id;
+        if (Environment.ProcessPath is { } self && PrivateExtractIconsW(self, 0, size, size, &icon, &id, 1, 0) == 1 && icon != 0)
+            PostMessageW(_hwnd, WM_SETICON, kind, icon);
+    }
+
+    static RECT GearRect => new(ClientWidth - Scale(36), Scale(10), ClientWidth - Scale(8), Scale(38));
+
+    /// <summary>
+    /// How much of each pixel a gear covers, 0-255. Computed rather than taken from a symbol font,
+    /// because first paint shouldn't have to wait for a font to load, and plain GDI shapes have jagged edges.
+    /// </summary>
+    static byte[] ComputeGearCoverage(int size)
+    {
+        const int Samples = 4, Teeth = 8;
+        const float Hole = 0.36f, Body = 0.72f, ToothWidth = 0.2f;
+        var coverage = new byte[size * size];
+        var centre = size / 2f;
+        for (var y = 0; y < size; y++)
+        for (var x = 0; x < size; x++)
+        {
+            var hits = 0;
+            for (var sy = 0; sy < Samples; sy++)
+            for (var sx = 0; sx < Samples; sx++)
+            {
+                var dx = (x + (sx + 0.5f) / Samples - centre) / centre;
+                var dy = (y + (sy + 0.5f) / Samples - centre) / centre;
+                var r = MathF.Sqrt(dx * dx + dy * dy);
+                if (r < Hole || r > 1) continue;
+                if (r <= Body || MathF.Cos(Teeth * MathF.Atan2(dy, dx)) > ToothWidth) hits++;
+            }
+            coverage[y * size + x] = (byte)(hits * 255 / (Samples * Samples));
+        }
+        return coverage;
+    }
+
+    static void PaintGear(nint dc, RECT gear, uint under, uint color)
+    {
+        var size = Scale(GearDip);
+        if (_gearCoverage.Length != size * size) _gearCoverage = ComputeGearCoverage(size);
+
+        var pixels = new uint[size * size];
+        for (var i = 0; i < pixels.Length; i++)
+        {
+            var a = (uint)_gearCoverage[i];
+            // COLORREF channels are blended in place, then swapped because a DIB pixel is 0x00RRGGBB.
+            uint Mix(int shift) => (((under >> shift) & 0xFF) * (255 - a) + ((color >> shift) & 0xFF) * a) / 255;
+            pixels[i] = (Mix(0) << 16) | (Mix(8) << 8) | Mix(16);
+        }
+
+        // A negative height makes the bitmap top-down.
+        var info = new BITMAPINFOHEADER { Size = (uint)sizeof(BITMAPINFOHEADER), Width = size, Height = -size, Planes = 1, BitCount = 32 };
+        var x = gear.Left + (gear.Right - gear.Left - size) / 2;
+        var y = gear.Top + (gear.Bottom - gear.Top - size) / 2;
+        fixed (uint* bits = pixels)
+            SetDIBitsToDevice(dc, x, y, (uint)size, (uint)size, 0, 0, 0, (uint)size, bits, &info, 0);
+    }
+
+    static void SetGearHot(bool hot)
+    {
+        if (hot == _gearHot) return;
+        _gearHot = hot;
+        if (hot)
+        {
+            // Without this, leaving the window directly from the gear would leave it highlighted.
+            var track = new TRACKMOUSEEVENT { Size = (uint)sizeof(TRACKMOUSEEVENT), Flags = TME_LEAVE, Track = _hwnd };
+            TrackMouseEvent(&track);
+        }
+        InvalidateRect(_hwnd, 0, 0);
     }
 
     // Footer geometry: [x] Always open [ domain edit ] this way
@@ -264,14 +348,20 @@ internal static unsafe class PickerWindow
                 return 0;
             case WM_MOUSEMOVE:
             {
-                var row = RowAt(LowWord(l), HighWord(l));
+                var (x, y) = (LowWord(l), HighWord(l));
+                SetGearHot(GearRect.Contains(x, y));
+                var row = RowAt(x, y);
                 if (row >= 0) Select(row);
                 return 0;
             }
+            case WM_MOUSELEAVE:
+                SetGearHot(false);
+                return 0;
             case WM_LBUTTONDOWN:
             {
                 var (x, y) = (LowWord(l), HighWord(l));
                 _pressedRow = RowAt(x, y);
+                _gearPressed = GearRect.Contains(x, y);
                 SetFocus(hwnd);
                 if (_showAlways && CheckRect.Contains(x, y)) ToggleAlways();
                 return 0;
@@ -279,9 +369,16 @@ internal static unsafe class PickerWindow
             case WM_LBUTTONUP:
             {
                 // Needs a matching press here: a release alone can be the end of the launching double-click.
-                var row = RowAt(LowWord(l), HighWord(l));
+                var (x, y) = (LowWord(l), HighWord(l));
+                var row = RowAt(x, y);
                 if (row >= 0 && row == _pressedRow) Choose(row);
+                else if (_gearPressed && GearRect.Contains(x, y))
+                {
+                    SettingsRequested = true;
+                    DestroyWindow(hwnd);
+                }
                 _pressedRow = -1;
+                _gearPressed = false;
                 return 0;
             }
             case WM_MOUSEWHEEL:
@@ -339,10 +436,20 @@ internal static unsafe class PickerWindow
         DeleteObject(background);
 
         var pad = Scale(PadDip);
+        var gear = GearRect;
+        var headerRight = gear.Left - Scale(6);
         SelectObject(dc, _boldFont);
-        DrawLine(dc, _title, new RECT(pad, Scale(8), client.Right - pad, Scale(30)), _text, DT_END_ELLIPSIS);
+        DrawLine(dc, _title, new RECT(pad, Scale(8), headerRight, Scale(30)), _text, DT_END_ELLIPSIS);
         SelectObject(dc, _font);
-        DrawLine(dc, _subtitle, new RECT(pad, Scale(28), client.Right - pad, Scale(50)), _dimText, DT_PATH_ELLIPSIS);
+        DrawLine(dc, _subtitle, new RECT(pad, Scale(28), headerRight, Scale(50)), _dimText, DT_PATH_ELLIPSIS);
+
+        if (_gearHot)
+        {
+            var hover = CreateSolidBrush(_gearHover);
+            FillRect(dc, &gear, hover);
+            DeleteObject(hover);
+        }
+        PaintGear(dc, gear, _gearHot ? _gearHover : _background, _gearHot ? _text : _dimText);
 
         var accent = CreateSolidBrush(_accent);
         var rowHeight = Scale(RowDip);

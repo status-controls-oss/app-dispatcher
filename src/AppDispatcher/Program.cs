@@ -39,7 +39,7 @@ internal static class Program
             var rows = targets.Select(t => new PickerRow(t.Label, t.Exe)).ToList();
             var last = targets.FindIndex(t => t.Label == rule!.LastTargetLabel);
             var result = PickerWindow.Show(Path.GetFileName(file), file, rows, Math.Max(last, 0), domain: null);
-            if (result == null) return 0;
+            if (result == null) return PickerWindow.SettingsRequested ? OpenSettings() : 0;
             chosen = targets[result.Value.Row];
         }
 
@@ -66,7 +66,7 @@ internal static class Program
         var last = browsers.FindIndex(b => config.LastBrowser != null && b.Matches(config.LastBrowser, config.LastProfileId ?? ""));
         var rows = browsers.Select(b => new PickerRow(b.Display, b.ExePath)).ToList();
         var result = PickerWindow.Show("Open link with", url.AbsoluteUri, rows, Math.Max(last, 0), url.Host);
-        if (result == null) return 0;
+        if (result == null) return PickerWindow.SettingsRequested ? OpenSettings() : 0;
 
         var chosen = browsers[result.Value.Row];
         if (!TryLaunch(() => chosen.Launch(url))) return 1;
