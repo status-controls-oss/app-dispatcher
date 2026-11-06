@@ -1,28 +1,10 @@
 <Window x:Class="AppDispatcher.Settings.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="App Dispatcher Settings" Width="780" Height="720" WindowStartupLocation="CenterScreen"
+        Title="App Dispatcher Settings" Width="780" Height="660" WindowStartupLocation="CenterScreen"
         Activated="Window_Activated">
     <DockPanel Margin="14">
-        <GroupBox Header="Windows registration" DockPanel.Dock="Top" Padding="8">
-            <StackPanel>
-                <TextBlock x:Name="StatusText" Margin="0,0,0,6" TextWrapping="Wrap"/>
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="Register" Padding="10,3" Click="Register_Click"
-                            ToolTip="Makes App Dispatcher available to choose as a default app, and adds it to the Start menu. Needs no admin rights, and is safe to click again."/>
-                    <Button Content="Unregister" Padding="10,3" Margin="8,0,0,0" Click="Unregister_Click"
-                            ToolTip="Removes App Dispatcher from Windows and the Start menu. Your settings are kept, but any file type still using it will need a new default app."/>
-                    <Button Content="Open Windows Default Apps…" Padding="10,3" Margin="8,0,0,0" Click="DefaultApps_Click"
-                            ToolTip="Opens the Windows page where you choose App Dispatcher for each file type and for HTTP and HTTPS links. Windows only lets you make this choice yourself."/>
-                    <Button Content="Refresh status" Padding="10,3" Margin="8,0,0,0" Click="Refresh_Click"
-                            ToolTip="Checks again which file types are using App Dispatcher. Use this after changing defaults in Windows."/>
-                </StackPanel>
-                <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
-                           Text="1. Click Register.&#10;2. Add file types and their apps below.&#10;3. Click Open Windows Default Apps and choose App Dispatcher for each file type, and for HTTP and HTTPS if you want it for links. Adding a type here isn't enough, because Windows only lets you make that choice yourself."/>
-            </StackPanel>
-        </GroupBox>
-
-        <TabControl Margin="0,8,0,0">
+        <TabControl>
             <TabItem Header="File types" ToolTip="Which apps the picker offers for each kind of file.">
                 <Grid Margin="8">
                     <Grid.ColumnDefinitions>
@@ -45,12 +27,17 @@
 
                     <DockPanel Grid.Column="1">
                         <Border x:Name="GuideBanner" DockPanel.Dock="Top" Padding="8,6" Margin="0,0,0,8" CornerRadius="3">
-                            <DockPanel>
-                                <Button x:Name="GuideButton" DockPanel.Dock="Right" Content="Open Windows Default Apps…" Padding="8,2" Margin="8,0,0,0"
-                                        VerticalAlignment="Center" Click="DefaultApps_Click"
-                                        ToolTip="Opens the Windows page where you choose App Dispatcher for this file type."/>
-                                <TextBlock x:Name="GuideText" TextWrapping="Wrap" VerticalAlignment="Center"/>
-                            </DockPanel>
+                            <StackPanel>
+                                <TextBlock x:Name="GuideText" TextWrapping="Wrap"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+                                    <Button x:Name="GuideRegisterButton" Content="Register" Padding="8,2" Margin="0,0,8,0" Click="Register_Click"
+                                            ToolTip="Makes App Dispatcher available to choose as a default app, and adds it to the Start menu. Needs no admin rights."/>
+                                    <Button x:Name="GuideButton" Content="Open Windows Default Apps…" Padding="8,2" Margin="0,0,8,0" Click="DefaultApps_Click"
+                                            ToolTip="Opens the Windows page where you choose App Dispatcher for this file type."/>
+                                    <Button Content="Refresh status" Padding="8,2" Click="Refresh_Click"
+                                            ToolTip="Checks Windows again for default apps, and looks again for installed apps and browsers. Default apps are also checked whenever you switch back to this window."/>
+                                </StackPanel>
+                            </StackPanel>
                         </Border>
                         <TextBlock DockPanel.Dock="Top" Text="Apps shown in the picker, in order" FontWeight="SemiBold" Margin="0,0,0,4"/>
 
@@ -110,6 +97,19 @@
 
             <TabItem Header="Links" ToolTip="What happens when a link opens, and which browsers the picker offers.">
                 <DockPanel Margin="8">
+                    <Border x:Name="LinkGuideBanner" DockPanel.Dock="Top" Padding="8,6" Margin="0,0,0,8" CornerRadius="3">
+                        <StackPanel>
+                            <TextBlock x:Name="LinkGuideText" TextWrapping="Wrap"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+                                <Button x:Name="LinkGuideRegisterButton" Content="Register" Padding="8,2" Margin="0,0,8,0" Click="Register_Click"
+                                        ToolTip="Makes App Dispatcher available to choose as a default app, and adds it to the Start menu. Needs no admin rights."/>
+                                <Button x:Name="LinkGuideButton" Content="Open Windows Default Apps…" Padding="8,2" Margin="0,0,8,0" Click="DefaultApps_Click"
+                                        ToolTip="Opens the Windows page where you choose App Dispatcher for HTTP and HTTPS."/>
+                                <Button Content="Refresh status" Padding="8,2" Click="Refresh_Click"
+                                        ToolTip="Checks Windows again for default apps, and looks again for installed apps and browsers. Default apps are also checked whenever you switch back to this window."/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                         <TextBlock Text="Links without a rule" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <ComboBox x:Name="DefaultLinkCombo" DisplayMemberPath="Display" SelectionChanged="DefaultLink_SelectionChanged"
@@ -186,6 +186,24 @@
                         </DataGrid>
                     </GroupBox>
                 </DockPanel>
+            </TabItem>
+
+            <TabItem Header="Windows setup" ToolTip="Connects App Dispatcher to Windows. You normally only need this once.">
+                <StackPanel Margin="8">
+                    <TextBlock x:Name="StatusText" FontWeight="SemiBold" Margin="0,0,0,10" TextWrapping="Wrap"/>
+                    <TextBlock Margin="0,0,0,10" TextWrapping="Wrap"
+                               Text="1. Click Register.&#10;2. Add file types and their apps on the File types tab.&#10;3. Click Open Windows Default Apps and choose App Dispatcher for each file type, and for HTTP and HTTPS if you want it for links. Adding a type in this app isn't enough, because Windows only lets you make that choice yourself."/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Register" Padding="10,3" Click="Register_Click"
+                                ToolTip="Makes App Dispatcher available to choose as a default app, and adds it to the Start menu. Needs no admin rights, and is safe to click again."/>
+                        <Button Content="Unregister" Padding="10,3" Margin="8,0,0,0" Click="Unregister_Click"
+                                ToolTip="Removes App Dispatcher from Windows and the Start menu. Your settings are kept, but any file type still using it will need a new default app."/>
+                        <Button Content="Open Windows Default Apps…" Padding="10,3" Margin="8,0,0,0" Click="DefaultApps_Click"
+                                ToolTip="Opens the Windows page where you choose App Dispatcher for each file type and for HTTP and HTTPS links. Windows only lets you make this choice yourself."/>
+                        <Button Content="Refresh status" Padding="10,3" Margin="8,0,0,0" Click="Refresh_Click"
+                                ToolTip="Checks Windows again for default apps, and looks again for installed apps and browsers. Default apps are also checked whenever you switch back to this window."/>
+                    </StackPanel>
+                </StackPanel>
             </TabItem>
         </TabControl>
     </DockPanel>

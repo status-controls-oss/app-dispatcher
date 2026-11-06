@@ -74,6 +74,13 @@ public static partial class Registration
     public static bool IsDefaultFor(string extension) =>
         string.Equals(CurrentProgId(extension), ProgId(extension), StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>Whether Windows currently sends both kinds of web link to us, as chosen by the user.</summary>
+    public static bool IsDefaultForLinks() => new[] { "http", "https" }.All(scheme =>
+    {
+        using var choice = Registry.CurrentUser.OpenSubKey($@"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\{scheme}\UserChoice");
+        return string.Equals(choice?.GetValue("ProgId") as string, UrlProgId, StringComparison.OrdinalIgnoreCase);
+    });
+
     static string ProgId(string extension) => $"{FileProgIdPrefix}{extension}";
 
     static IEnumerable<string> RegisteredExtensions()

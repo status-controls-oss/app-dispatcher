@@ -324,6 +324,20 @@ public class SetupGuideTests
         Assert.Contains(".qsys", SetupGuide.Message(".qsys", state, 1));
 
     [Fact]
+    public void The_links_banner_describes_what_links_currently_do()
+    {
+        Assert.Contains("show the picker unless", SetupGuide.LinkMessage(SetupState.Ready, null));
+        Assert.Contains("open in Brave — Work unless", SetupGuide.LinkMessage(SetupState.Ready, "Brave — Work"));
+    }
+
+    [Theory]
+    [InlineData(SetupState.NotRegistered, "Register")]
+    [InlineData(SetupState.NoApps, "add a browser")]
+    [InlineData(SetupState.NotDefault, "HTTP and HTTPS")]
+    public void The_links_banner_gives_the_next_step_before_it_is_ready(SetupState state, string expected) =>
+        Assert.Contains(expected, SetupGuide.LinkMessage(state, "Ignored until ready"));
+
+    [Fact]
     public void The_windows_step_says_the_choice_is_the_users()
     {
         Assert.Contains("only you can change that", SetupGuide.Message(".qsys", SetupState.NotDefault, 2));

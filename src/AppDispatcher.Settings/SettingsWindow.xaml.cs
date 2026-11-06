@@ -14,7 +14,7 @@ public partial class SettingsWindow : Window
 
     readonly AppConfig _config = AppConfig.Load();
     readonly string _pickerExe = Path.Combine(AppContext.BaseDirectory, "AppDispatcher.exe");
-    readonly List<CustomBrowser> _detectedBrowsers;
+    List<CustomBrowser> _detectedBrowsers = new();
     readonly Dictionary<string, List<FileTarget>> _fileHandlers = new(StringComparer.OrdinalIgnoreCase);
     bool _loadingDefaultLink;
 
@@ -30,8 +30,7 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         CatalogCombo.ItemsSource = EditorCatalog.Discover();
         CatalogCombo.SelectedIndex = 0;
-        var alreadyListed = BrowserDiscovery.Discover(Array.Empty<CustomBrowser>(), null).Select(b => b.ExePath);
-        _detectedBrowsers = BrowserCatalog.Detect(alreadyListed.Append(_pickerExe));
+        DetectBrowsers();
         RefreshBrowsers();
         RefreshRules();
         RefreshExtensions(_config.Extensions.FirstOrDefault());
@@ -53,13 +52,17 @@ public partial class SettingsWindow : Window
         else
         {
             string Named(SetupState state) => string.Join(", ", _config.Extensions.Where(x => StateOf(x) == state).Select(x => x.Extension));
-            var (noApps, notDefault) = (Named(SetupState.NoApps), Named(SetupState.NotDefault));
-            StatusText.Text = noApps.Length + notDefault.Length == 0
-                ? "Registered, and the default for every file type listed below."
+            var noApps = Named(SetupState.NoApps);
+            var notDefault = new[] { Named(SetupState.NotDefault), Registration.IsDefaultForLinks() ? "" : "HTTP and HTTPS" }
+                .Where(n => n.Length > 0);
+            var toChoose = string.Join(", ", notDefault);
+            StatusText.Text = noApps.Length + toChoose.Length == 0
+                ? "Registered, and the default for every file type and for links."
                 : "Registered." +
                   (noApps.Length > 0 ? $" Needs apps: {noApps}." : "") +
-                  (notDefault.Length > 0 ? $" Still to choose in Windows Default Apps: {notDefault}." : "");
+                  (toChoose.Length > 0 ? $" Still to choose in Windows Default Apps: {toChoose}." : "");
         }
+        RefreshLinkGuide();
     }
 
     SetupState StateOf(ExtensionRule rule) =>
@@ -67,24 +70,35 @@ public partial class SettingsWindow : Window
 
     void RefreshGuide()
     {
-        var ready = false;
         if (SelectedRule is { } rule)
         {
             var state = StateOf(rule);
-            ready = state == SetupState.Ready;
-            GuideText.Text = SetupGuide.Message(rule.Extension, state, rule.Targets.Count);
-            GuideButton.Visibility = state == SetupState.NotDefault ? Visibility.Visible : Visibility.Collapsed;
+            ShowGuide(GuideBanner, GuideText, GuideRegisterButton, GuideButton, SetupGuide.Message(rule.Extension, state, rule.Targets.Count), state);
         }
-        else
-        {
-            GuideText.Text = "Select a file type, or add one on the left.";
-            GuideButton.Visibility = Visibility.Collapsed;
-        }
-        GuideBanner.Background = new SolidColorBrush(ready ? Color.FromRgb(0xDF, 0xF6, 0xDD) : Color.FromRgb(0xFF, 0xF4, 0xCE));
+        else ShowGuide(GuideBanner, GuideText, GuideRegisterButton, GuideButton, "Select a file type, or add one on the left.", null);
+    }
+
+    void RefreshLinkGuide()
+    {
+        var chosen = DefaultLinkCombo.SelectedItem as BrowserTarget;
+        // The list is the browsers plus its "Show the picker" entry.
+        var state = SetupGuide.StateOf(IsRegistered, Math.Max(0, DefaultLinkCombo.Items.Count - 1), Registration.IsDefaultForLinks());
+        var message = SetupGuide.LinkMessage(state, chosen == null || chosen.Browser == Rule.ShowPicker ? null : chosen.Display);
+        ShowGuide(LinkGuideBanner, LinkGuideText, LinkGuideRegisterButton, LinkGuideButton, message, state);
+    }
+
+    static void ShowGuide(Border banner, TextBlock text, Button register, Button defaultApps, string message, SetupState? state)
+    {
+        text.Text = message;
+        register.Visibility = state == SetupState.NotRegistered ? Visibility.Visible : Visibility.Collapsed;
+        defaultApps.Visibility = state == SetupState.NotDefault ? Visibility.Visible : Visibility.Collapsed;
+        banner.Background = new SolidColorBrush(state == SetupState.Ready ? Color.FromRgb(0xDF, 0xF6, 0xDD) : Color.FromRgb(0xFF, 0xF4, 0xCE));
     }
 
     /// <summary>Picks up a default chosen in Windows as soon as the user comes back here.</summary>
-    void Window_Activated(object? s, EventArgs e)
+    void Window_Activated(object? s, EventArgs e) => RefreshFromWindows();
+
+    void RefreshFromWindows()
     {
         var target = TargetList.SelectedItem as FileTarget;
         _fileHandlers.Clear(); // An app may have been installed in the meantime.
@@ -104,7 +118,18 @@ public partial class SettingsWindow : Window
         Shortcut.Delete(Shortcut.StartMenuPath);
     });
 
-    void Refresh_Click(object s, RoutedEventArgs e) => RefreshExtensions(SelectedRule);
+    void Refresh_Click(object s, RoutedEventArgs e)
+    {
+        DetectBrowsers();
+        RefreshBrowsers();
+        RefreshFromWindows();
+    }
+
+    void DetectBrowsers()
+    {
+        var alreadyListed = BrowserDiscovery.Discover(Array.Empty<CustomBrowser>(), null).Select(b => b.ExePath);
+        _detectedBrowsers = BrowserCatalog.Detect(alreadyListed.Append(_pickerExe));
+    }
 
     void DefaultApps_Click(object s, RoutedEventArgs e) =>
         Process.Start(new ProcessStartInfo(Registration.DefaultAppsUri) { UseShellExecute = true });
@@ -290,6 +315,7 @@ public partial class SettingsWindow : Window
             ? showPicker
             : browsers.FirstOrDefault(b => b.Matches(_config.DefaultBrowser, _config.DefaultProfileId ?? "")) ?? showPicker;
         _loadingDefaultLink = false;
+        RefreshLinkGuide();
 
         CustomBrowserList.ItemsSource = null;
         CustomBrowserList.ItemsSource = _config.CustomBrowsers;
