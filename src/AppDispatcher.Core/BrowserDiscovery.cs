@@ -5,27 +5,50 @@ namespace AppDispatcher.Core;
 
 public class BrowserTarget
 {
-    public string Browser { get; init; } = "";      // Chrome | Edge | Firefox
+    public const string UrlPlaceholder = "{url}";
+
+    public string Browser { get; init; } = "";      // Chrome | Edge | Firefox | a custom browser's label
     public string ExePath { get; init; } = "";
-    public string ProfileId { get; init; } = "";    // chromium: directory name; firefox: profile name
+    public string ProfileId { get; init; } = "";    // chromium: directory name; firefox: profile name; custom: empty
     public string ProfileName { get; init; } = "";
-    public string Display => $"{Browser} — {ProfileName}";
+
+    /// <summary>Set for custom browsers, which are invoked exactly as configured.</summary>
+    public IReadOnlyList<string>? CustomArgs { get; init; }
+
+    public string Display => ProfileName.Length == 0 ? Browser : $"{Browser} — {ProfileName}";
 
     public bool Matches(string browser, string profileId) =>
         Browser == browser && string.Equals(ProfileId, profileId, StringComparison.OrdinalIgnoreCase);
 
-    public void Launch(Uri url)
+    public IReadOnlyList<string> LaunchArgs(Uri url)
     {
-        var args = Browser == "Firefox"
+        if (CustomArgs != null)
+            return CustomArgs.Select(a => a.Replace(UrlPlaceholder, url.AbsoluteUri)).ToList();
+        return Browser == "Firefox"
             ? new[] { "-P", ProfileId, "-url", url.AbsoluteUri }
             : new[] { $"--profile-directory={ProfileId}", url.AbsoluteUri };
-        Launcher.Start(ExePath, args);
     }
+
+    public void Launch(Uri url) => Launcher.Start(ExePath, LaunchArgs(url));
 }
 
 public static class BrowserDiscovery
 {
-    public static List<BrowserTarget> Discover()
+    /// <summary>Installed browsers' profiles, followed by the custom browsers that are still usable.</summary>
+    public static List<BrowserTarget> Discover(IEnumerable<CustomBrowser> custom, string? selfExe)
+    {
+        var list = DiscoverInstalled();
+        list.AddRange(FromCustom(custom, selfExe));
+        return list;
+    }
+
+    /// <summary>Drops an app that is no longer installed, or the dispatcher itself, which would reopen the picker forever.</summary>
+    public static IEnumerable<BrowserTarget> FromCustom(IEnumerable<CustomBrowser> custom, string? selfExe) =>
+        custom
+            .Where(c => File.Exists(c.Exe) && !string.Equals(c.Exe, selfExe, StringComparison.OrdinalIgnoreCase))
+            .Select(c => new BrowserTarget { Browser = c.Label, ExePath = c.Exe, CustomArgs = c.Args });
+
+    static List<BrowserTarget> DiscoverInstalled()
     {
         var list = new List<BrowserTarget>();
         var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);

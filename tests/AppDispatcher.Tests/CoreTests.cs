@@ -152,6 +152,63 @@ public class TargetResolverTests
         Assert.Equal(expected, TargetResolver.ParseArgs(text));
 }
 
+public class CustomBrowserTests
+{
+    static readonly Uri Url = new("https://example.com/a?b=c");
+
+    [Fact]
+    public void Expands_url_inside_and_as_a_whole_argument()
+    {
+        var target = new BrowserTarget { Browser = "Brave", CustomArgs = new[] { "--incognito", "--app={url}", "{url}" } };
+
+        Assert.Equal(new[] { "--incognito", "--app=https://example.com/a?b=c", "https://example.com/a?b=c" }, target.LaunchArgs(Url));
+    }
+
+    [Fact]
+    public void Shows_only_its_label_and_matches_with_an_empty_profile()
+    {
+        using var tree = new TempTree();
+        var exe = tree.File("brave.exe");
+
+        var target = BrowserDiscovery.FromCustom(new[] { new CustomBrowser { Label = "Brave", Exe = exe } }, null).Single();
+
+        Assert.Equal("Brave", target.Display);
+        Assert.True(target.Matches("Brave", ""));
+    }
+
+    [Fact]
+    public void Skips_missing_programs_and_the_dispatcher_itself()
+    {
+        using var tree = new TempTree();
+        var self = tree.File("AppDispatcher.exe");
+        var browsers = new[]
+        {
+            new CustomBrowser { Label = "Gone", Exe = Path.Combine(tree.Root, "gone.exe") },
+            new CustomBrowser { Label = "Loop", Exe = self.ToUpperInvariant() },
+        };
+
+        Assert.Empty(BrowserDiscovery.FromCustom(browsers, self));
+    }
+
+    [Fact]
+    public void Installed_browsers_keep_their_profile_arguments()
+    {
+        var chrome = new BrowserTarget { Browser = "Chrome", ProfileId = "Profile 1", ProfileName = "Work" };
+        var firefox = new BrowserTarget { Browser = "Firefox", ProfileId = "dev", ProfileName = "dev" };
+
+        Assert.Equal("Chrome — Work", chrome.Display);
+        Assert.Equal(new[] { "--profile-directory=Profile 1", Url.AbsoluteUri }, chrome.LaunchArgs(Url));
+        Assert.Equal(new[] { "-P", "dev", "-url", Url.AbsoluteUri }, firefox.LaunchArgs(Url));
+    }
+
+    [Theory]
+    [InlineData("", new[] { "{url}" })]
+    [InlineData("--incognito", new[] { "--incognito", "{url}" })]
+    [InlineData("--app={url}", new[] { "--app={url}" })]
+    public void ParseArgs_ensures_the_url_placeholder(string text, string[] expected) =>
+        Assert.Equal(expected, TargetResolver.ParseArgs(text, BrowserTarget.UrlPlaceholder));
+}
+
 public class AppConfigTests
 {
     [Theory]
@@ -196,6 +253,25 @@ public class AppConfigTests
 
             var reloaded = AppConfig.Load();
             Assert.Equal("Zed", reloaded.FindExtension(".json")!.LastTargetLabel);
+        }
+        finally { AppConfig.PathOnDisk = original; }
+    }
+
+    [Fact]
+    public void Custom_browsers_survive_a_save_and_a_config_without_them_still_loads()
+    {
+        using var tree = new TempTree();
+        var original = AppConfig.PathOnDisk;
+        AppConfig.PathOnDisk = tree.File("config.json", """{ "Rules": [] }""");
+        try
+        {
+            Assert.Empty(AppConfig.Load().CustomBrowsers);
+
+            AppConfig.Update(c => c.CustomBrowsers.Add(new CustomBrowser { Label = "Brave", Exe = "b.exe", Args = new() { "{url}" } }));
+
+            var saved = AppConfig.Load().CustomBrowsers.Single();
+            Assert.Equal("Brave", saved.Label);
+            Assert.Equal(new[] { "{url}" }, saved.Args);
         }
         finally { AppConfig.PathOnDisk = original; }
     }

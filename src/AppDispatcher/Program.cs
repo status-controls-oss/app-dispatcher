@@ -54,14 +54,14 @@ internal static class Program
     static int OpenUrl(Uri url)
     {
         var config = AppConfig.Load();
-        var browsers = BrowserDiscovery.Discover();
+        var browsers = BrowserDiscovery.Discover(config.CustomBrowsers, Environment.ProcessPath);
         var ruleMatch = config.FindRule(url.Host);
         var target = ruleMatch == null ? null : browsers.FirstOrDefault(b => b.Matches(ruleMatch.Browser, ruleMatch.ProfileId));
         if (target != null)
             return TryLaunch(() => target.Launch(url)) ? 0 : 1;
 
         if (browsers.Count == 0)
-            return Fail("No supported browsers (Chrome, Edge, Firefox) were found.");
+            return Fail("No browsers were found. Chrome, Edge and Firefox are detected automatically; add any other on the Links tab in Settings.");
 
         var last = browsers.FindIndex(b => config.LastBrowser != null && b.Matches(config.LastBrowser, config.LastProfileId ?? ""));
         var rows = browsers.Select(b => new PickerRow(b.Display, b.ExePath)).ToList();

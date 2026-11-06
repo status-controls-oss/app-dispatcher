@@ -55,6 +55,12 @@ Rider runs one process per install, so "new instance" isn't available and these 
 
 Declining Rider's trust prompt still opens the file, in your current Rider window.
 
+## Browsers
+
+Every link opens the picker unless its domain has an "Always open" rule. Chrome, Edge and Firefox are detected automatically, with one row per profile.
+
+To add any other browser, use **Custom browsers** on the Links tab in Settings. Give it a label, a program and arguments. `{url}` is replaced with the link, and is added at the end if you leave it out, for example `--incognito {url}`. Add one entry per profile or mode you want as a row. Custom browsers appear after the detected ones, and a custom browser whose program is missing is hidden. Removing a custom browser also removes its "Always open" rules.
+
 ## Why two executables
 
 Startup time decides whether this is worth using, so the two jobs are built differently:

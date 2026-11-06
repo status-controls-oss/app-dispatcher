@@ -19,9 +19,7 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         CatalogCombo.ItemsSource = EditorCatalog.Discover();
         CatalogCombo.SelectedIndex = 0;
-        var browsers = BrowserDiscovery.Discover();
-        BrowserCombo.ItemsSource = browsers;
-        if (browsers.Count > 0) BrowserCombo.SelectedIndex = 0;
+        RefreshBrowsers();
         RefreshRules();
         RefreshExtensions(_config.Extensions.FirstOrDefault());
         RefreshStatus();
@@ -145,13 +143,15 @@ public partial class SettingsWindow : Window
             AddTarget(new FileTarget { Label = t.Label, Exe = t.Exe, Args = t.Args.ToList(), AppId = t.AppId });
     }
 
-    void BrowseExe_Click(object s, RoutedEventArgs e)
+    void BrowseExe_Click(object s, RoutedEventArgs e) => BrowseProgram(CustomExe, CustomLabel);
+
+    void BrowseProgram(TextBox exe, TextBox label)
     {
         var dialog = new OpenFileDialog { Filter = "Programs (*.exe)|*.exe" };
         if (dialog.ShowDialog(this) != true) return;
-        CustomExe.Text = dialog.FileName;
-        if (string.IsNullOrWhiteSpace(CustomLabel.Text))
-            CustomLabel.Text = Path.GetFileNameWithoutExtension(dialog.FileName);
+        exe.Text = dialog.FileName;
+        if (string.IsNullOrWhiteSpace(label.Text))
+            label.Text = Path.GetFileNameWithoutExtension(dialog.FileName);
     }
 
     void AddCustom_Click(object s, RoutedEventArgs e)
@@ -191,6 +191,58 @@ public partial class SettingsWindow : Window
     {
         RulesGrid.ItemsSource = null;
         RulesGrid.ItemsSource = _config.Rules;
+    }
+
+    void RefreshBrowsers()
+    {
+        var selected = (BrowserCombo.SelectedItem as BrowserTarget)?.Display;
+        var browsers = BrowserDiscovery.Discover(_config.CustomBrowsers, _pickerExe);
+        BrowserCombo.ItemsSource = browsers;
+        BrowserCombo.SelectedItem = browsers.FirstOrDefault(b => b.Display == selected) ?? browsers.FirstOrDefault();
+        CustomBrowserList.ItemsSource = null;
+        CustomBrowserList.ItemsSource = _config.CustomBrowsers;
+    }
+
+    void BrowseBrowser_Click(object s, RoutedEventArgs e) => BrowseProgram(BrowserExe, BrowserLabel);
+
+    void AddBrowser_Click(object s, RoutedEventArgs e)
+    {
+        var label = BrowserLabel.Text.Trim();
+        var exe = BrowserExe.Text.Trim().Trim('"');
+        var problem =
+            label.Length == 0 ? "Enter a label." :
+            !File.Exists(exe) ? "Choose a program that exists." :
+            string.Equals(exe, _pickerExe, StringComparison.OrdinalIgnoreCase) ? "App Dispatcher can't be one of its own browsers." :
+            _config.CustomBrowsers.Any(b => string.Equals(b.Label, label, StringComparison.OrdinalIgnoreCase)) ? $"There is already a browser called {label}." :
+            null;
+        if (problem != null)
+        {
+            MessageBox.Show(this, problem, "App Dispatcher", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        _config.CustomBrowsers.Add(new CustomBrowser
+        {
+            Label = label,
+            Exe = exe,
+            Args = TargetResolver.ParseArgs(BrowserArgs.Text, BrowserTarget.UrlPlaceholder),
+        });
+        Commit();
+        BrowserLabel.Clear();
+        BrowserExe.Clear();
+        BrowserArgs.Text = BrowserTarget.UrlPlaceholder;
+        RefreshBrowsers();
+    }
+
+    void RemoveBrowser_Click(object s, RoutedEventArgs e)
+    {
+        if (CustomBrowserList.SelectedItem is not CustomBrowser b) return;
+        _config.CustomBrowsers.Remove(b);
+        // A rule for a browser that's gone could never fire again.
+        _config.Rules.RemoveAll(r => r.Browser == b.Label && r.ProfileId.Length == 0);
+        Commit();
+        RefreshBrowsers();
+        RefreshRules();
     }
 
     void AddRule_Click(object s, RoutedEventArgs e)

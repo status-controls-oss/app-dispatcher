@@ -32,12 +32,23 @@ public class ExtensionRule
     public string? LastTargetLabel { get; set; }
 }
 
+/// <summary>A browser added by hand in Settings, for anything discovery doesn't know about.</summary>
+public class CustomBrowser
+{
+    public string Label { get; set; } = "";
+    public string Exe { get; set; } = "";
+
+    /// <summary>Arguments; may contain {url}. See <see cref="BrowserTarget.UrlPlaceholder"/>.</summary>
+    public List<string> Args { get; set; } = new();
+}
+
 public class AppConfig
 {
     public List<Rule> Rules { get; set; } = new();
     public string? LastBrowser { get; set; }
     public string? LastProfileId { get; set; }
     public List<ExtensionRule> Extensions { get; set; } = new();
+    public List<CustomBrowser> CustomBrowsers { get; set; } = new();
 
     static string AppData => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 

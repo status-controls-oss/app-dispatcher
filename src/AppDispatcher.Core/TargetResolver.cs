@@ -44,8 +44,8 @@ public static class TargetResolver
         return result;
     }
 
-    /// <summary>Splits a typed argument string on spaces outside double quotes; adds {file} if it is absent.</summary>
-    public static List<string> ParseArgs(string text)
+    /// <summary>Splits a typed argument string on spaces outside double quotes; adds the placeholder if it is absent.</summary>
+    public static List<string> ParseArgs(string text, string placeholder = File_)
     {
         var args = new List<string>();
         var current = new StringBuilder();
@@ -63,7 +63,7 @@ public static class TargetResolver
             else { current.Append(c); hasToken = true; }
         }
         if (hasToken) args.Add(current.ToString());
-        if (!args.Any(a => a.Contains(File_))) args.Add(File_);
+        if (!args.Any(a => a.Contains(placeholder))) args.Add(placeholder);
         return args;
     }
 }
