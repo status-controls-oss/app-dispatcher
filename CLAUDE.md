@@ -37,6 +37,9 @@ URLs and file names reach launched apps from untrusted sources, so:
 
 - `Launcher.CanLaunch` allows only `.exe` targets, and not `cmd.exe`. Don't weaken it: `cmd.exe` would treat `&` in a link or file name as a new command, and .NET's quoting doesn't prevent that.
 - Pass arguments through `ProcessStartInfo.ArgumentList`, never a built command string.
+- `TargetResolver.Expand` replaces placeholders in a single pass. Chained `Replace` calls would expand placeholder text inside a file's path.
+- `SolutionFinder` must not search shared folders like Downloads, where a planted solution would be offered for everything below it.
+- `TargetResolver.IsFilePath` keeps links in other schemes from being collapsed into local paths.
 
 ## Testing on a machine with a real install
 

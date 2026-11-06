@@ -15,7 +15,10 @@ internal static class Program
         var argument = args[0];
         var isUrl = Uri.TryCreate(argument, UriKind.Absolute, out var url) &&
                     (url.Scheme == Uri.UriSchemeHttp || url.Scheme == Uri.UriSchemeHttps);
-        return isUrl ? OpenUrl(url!) : OpenFile(argument);
+        if (isUrl) return OpenUrl(url!);
+        return TargetResolver.IsFilePath(argument)
+            ? OpenFile(argument)
+            : Fail($"App Dispatcher only opens files and http or https links:\n\n{argument}");
     }
 
     static int OpenFile(string file)

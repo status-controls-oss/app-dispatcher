@@ -66,10 +66,99 @@ public class SolutionFinderTests
     }
 }
 
+public class SolutionBoundaryTests
+{
+    [Fact]
+    public void A_solution_in_a_shared_folder_is_not_offered_for_files_in_or_below_it()
+    {
+        using var tree = new TempTree();
+        var downloads = tree.Dir("Downloads");
+        tree.File("Downloads/planted.sln");
+        var beside = tree.File("Downloads/a.json");
+        var below = tree.File("Downloads/sub/b.json");
+
+        Assert.Null(SolutionFinder.Find(beside, new[] { downloads }));
+        Assert.Null(SolutionFinder.Find(below, new[] { downloads + "\\" }));
+    }
+
+    [Fact]
+    public void A_project_inside_a_shared_folder_still_finds_its_own_solution()
+    {
+        using var tree = new TempTree();
+        var downloads = tree.Dir("Downloads");
+        var sln = tree.File("Downloads/project/App.sln");
+        var file = tree.File("Downloads/project/src/a.json");
+
+        Assert.Equal(sln, SolutionFinder.Find(file, new[] { downloads }));
+    }
+
+    [Fact]
+    public void A_git_file_marks_the_root_of_a_worktree_or_submodule()
+    {
+        using var tree = new TempTree();
+        tree.File("Above.sln");
+        tree.File("worktree/.git", "gitdir: elsewhere");
+        var file = tree.File("worktree/data/a.json");
+
+        Assert.Null(SolutionFinder.Find(file, Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void The_default_shared_folders_leave_ordinary_projects_alone()
+    {
+        using var tree = new TempTree();
+        var sln = tree.File("repo/App.sln");
+
+        Assert.Equal(sln, SolutionFinder.Find(tree.File("repo/src/a.json")));
+    }
+}
+
+public class FileArgumentTests
+{
+    [Theory]
+    [InlineData(@"C:\Users\me\a.json", true)]
+    [InlineData(@"\\server\share\a.json", true)]
+    [InlineData(@"a.json", true)]
+    [InlineData(@"sub\a.json", true)]
+    [InlineData(@"..\a.json", true)]
+    [InlineData(@"appdispatcher.url:x/../../../Users/me/a.json", false)]
+    [InlineData(@"file:///C:/Users/me/a.json", false)]
+    [InlineData(@"ftp://example.com/a.json", false)]
+    [InlineData(@"http://[bad/../a.json", false)]
+    [InlineData(@"C:a.json", false)]
+    public void Only_real_paths_are_treated_as_files(string argument, bool isFile) =>
+        Assert.Equal(isFile, TargetResolver.IsFilePath(argument));
+}
+
 public class TargetResolverTests
 {
     static FileTarget Target(string label, string exe, params string[] args) =>
         new() { Label = label, Exe = exe, Args = args.ToList() };
+
+    [Fact]
+    public void Placeholder_text_inside_a_path_is_left_alone()
+    {
+        using var tree = new TempTree();
+        var exe = tree.File("app.exe");
+        var sln = tree.File("repo/App.sln");
+        var file = tree.File("repo/pa{solution}y{dir}load{file}.json");
+
+        var result = TargetResolver.Resolve(new[] { Target("App", exe, "{solution}", "{file}", "--dir={dir}") }, file).Single();
+
+        Assert.Equal(new[] { sln, file, "--dir=" + Path.GetDirectoryName(file) }, result.Args);
+    }
+
+    [Fact]
+    public void A_folder_named_like_a_placeholder_does_not_change_the_folder_passed()
+    {
+        using var tree = new TempTree();
+        var exe = tree.File("app.exe");
+        var file = tree.File("{solution}/a.json");
+
+        var result = TargetResolver.Resolve(new[] { Target("App", exe, "{dir}") }, file).Single();
+
+        Assert.Equal(Path.GetDirectoryName(file), result.Args.Single());
+    }
 
     [Fact]
     public void Expands_file_and_folder_without_splitting_paths_with_spaces()

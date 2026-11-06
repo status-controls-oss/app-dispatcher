@@ -59,7 +59,7 @@ Each picker row is an app plus a way of invoking it. These are built in:
 | Notepad++ | Normal, new instance (`-multiInst -nosession`) |
 | Visual Studio | Existing instance (`/Edit`), new instance |
 
-Custom apps can use `{file}`, `{dir}` and `{solution}` in their arguments, and `{solutionName}` in their label. A row using a solution appears only when a `.sln` or `.slnx` exists above the file, searching up to the git root. Network paths aren't searched.
+Custom apps can use `{file}`, `{dir}` and `{solution}` in their arguments, and `{solutionName}` in their label. A row using a solution appears only when a `.sln` or `.slnx` exists above the file, searching up to the git root. Network paths aren't searched, and neither are drive roots or your user folder, Downloads, Desktop, Documents and temp folders themselves, so a stray solution there isn't offered for every file below it. Project folders inside them are searched as normal.
 
 ### Rider
 

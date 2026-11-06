@@ -34,15 +34,36 @@ public static class TargetResolver
             }
             if (usesSolution && solution == null) continue;
 
-            var args = t.Args.Select(a => a
-                .Replace(File_, file)
-                .Replace(Dir, dir)
-                .Replace(Solution, solution ?? "")).ToList();
+            var args = t.Args.Select(a => Expand(a, file, dir, solution ?? "")).ToList();
             var label = t.Label.Replace(SolutionName, solution == null ? "" : Path.GetFileName(solution));
             result.Add(new ResolvedTarget(label, exe, args));
         }
         return result;
     }
+
+    /// <summary>
+    /// Replaces placeholders in one pass, so that a path containing text such as "{dir}" is left
+    /// alone. Otherwise a file could open as a different path from the one the picker shows.
+    /// </summary>
+    static string Expand(string template, string file, string dir, string solution)
+    {
+        var result = new StringBuilder();
+        for (var i = 0; i < template.Length;)
+        {
+            if (template.AsSpan(i).StartsWith(File_)) { result.Append(file); i += File_.Length; }
+            else if (template.AsSpan(i).StartsWith(Dir)) { result.Append(dir); i += Dir.Length; }
+            else if (template.AsSpan(i).StartsWith(Solution)) { result.Append(solution); i += Solution.Length; }
+            else result.Append(template[i++]);
+        }
+        return result.ToString();
+    }
+
+    /// <summary>
+    /// Whether a command-line argument can be a file. Only a full path may contain a colon, which rules
+    /// out links in other schemes. Those would otherwise be collapsed into a local path and opened.
+    /// </summary>
+    public static bool IsFilePath(string argument) =>
+        Path.IsPathFullyQualified(argument) || !argument.Contains(':');
 
     /// <summary>Splits a typed argument string on spaces outside double quotes; adds the placeholder if it is absent.</summary>
     public static List<string> ParseArgs(string text, string placeholder = File_)
