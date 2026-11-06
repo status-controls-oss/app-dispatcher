@@ -15,6 +15,7 @@ public partial class SettingsWindow : Window
     readonly AppConfig _config = AppConfig.Load();
     readonly string _pickerExe = Path.Combine(AppContext.BaseDirectory, "AppDispatcher.exe");
     readonly List<CustomBrowser> _detectedBrowsers;
+    readonly Dictionary<string, List<FileTarget>> _fileHandlers = new(StringComparer.OrdinalIgnoreCase);
 
     static SettingsWindow()
     {
@@ -85,6 +86,7 @@ public partial class SettingsWindow : Window
     void Window_Activated(object? s, EventArgs e)
     {
         var target = TargetList.SelectedItem as FileTarget;
+        _fileHandlers.Clear(); // An app may have been installed in the meantime.
         RefreshExtensions(SelectedRule);
         RefreshTargets(target);
     }
@@ -145,7 +147,33 @@ public partial class SettingsWindow : Window
         TargetList.ItemsSource = null;
         TargetList.ItemsSource = SelectedRule?.Targets;
         TargetList.SelectedItem = select;
+        RefreshHandlers();
         RefreshGuide();
+    }
+
+    void RefreshHandlers()
+    {
+        var offered = new List<FileTarget>();
+        if (SelectedRule is { } rule)
+        {
+            if (!_fileHandlers.TryGetValue(rule.Extension, out var handlers))
+                _fileHandlers[rule.Extension] = handlers = FileHandlers.Discover(rule.Extension, _pickerExe);
+            offered = handlers
+                .Where(h => !rule.Targets.Any(t =>
+                    string.Equals(t.Exe, h.Exe, StringComparison.OrdinalIgnoreCase) && t.Args.SequenceEqual(h.Args)))
+                .ToList();
+        }
+        var any = offered.Count > 0;
+        HandlerCombo.ItemsSource = any ? offered : new List<FileTarget> { new() { Label = "No other apps found for this file type" } };
+        HandlerCombo.SelectedIndex = 0;
+        HandlerCombo.IsEnabled = any;
+        AddHandlerButton.IsEnabled = any;
+    }
+
+    void AddHandler_Click(object s, RoutedEventArgs e)
+    {
+        if (HandlerCombo.SelectedItem is FileTarget t)
+            AddTarget(new FileTarget { Label = t.Label, Exe = t.Exe, Args = t.Args.ToList() });
     }
 
     void ExtensionList_SelectionChanged(object s, SelectionChangedEventArgs e) => RefreshTargets(null);

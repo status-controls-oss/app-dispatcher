@@ -30,7 +30,7 @@ Requires the .NET 8 SDK, the .NET 8 Desktop Runtime and the Visual Studio C++ bu
 4. Click **Register**.
 5. Click **Open Windows Default Apps** and choose App Dispatcher for each type (and HTTP/HTTPS for links). Windows doesn't allow apps to set this themselves. Until you do, Windows may ask how to open that type, or keep using its current app.
 
-Selecting a file type in Settings shows what it still needs.
+Selecting a file type in Settings shows what it still needs. **Windows has** lists the apps Windows already associates with that type, such as each installed version of an app, so most can be added without finding the program yourself. Microsoft Store apps aren't listed, because they can't be launched by a command line this way.
 
 **Register** also adds **App Dispatcher Settings** to the Start menu, which is the way back to Settings. The picker itself has no Start menu entry, because it only opens when given a file or link.
 

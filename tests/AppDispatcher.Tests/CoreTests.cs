@@ -209,6 +209,94 @@ public class CustomBrowserTests
         Assert.Equal(expected, TargetResolver.ParseArgs(text, BrowserTarget.UrlPlaceholder));
 }
 
+public class FileHandlersTests
+{
+    static string? NoDescription(string exe) => null;
+
+    [Fact]
+    public void Side_by_side_versions_are_named_after_their_folders()
+    {
+        using var tree = new TempTree();
+        var older = tree.File(@"Designer 9.10\designer.exe");
+        var newer = tree.File(@"Designer 10.4\designer.exe");
+
+        var rows = FileHandlers.Build(new[]
+        {
+            new RawHandler(null, $"\"{older}\" \"%1\""),
+            new RawHandler(null, $"\"{newer}\" \"%1\""),
+        }, null, _ => "Designer");
+
+        Assert.Equal(new[] { "Designer 10.4", "Designer 9.10" }, rows.Select(r => r.Label));
+        Assert.Equal(new[] { "{file}" }, rows[0].Args);
+    }
+
+    [Fact]
+    public void Names_come_from_the_registry_then_the_exe_then_its_file_name()
+    {
+        using var tree = new TempTree();
+        var a = tree.File(@"a\one.exe");
+        var b = tree.File(@"b\two.exe");
+        var c = tree.File(@"c\three.exe");
+
+        var rows = FileHandlers.Build(new[]
+        {
+            new RawHandler("Registered Name", $"\"{a}\" %1"),
+            new RawHandler(null, $"\"{b}\" %1"),
+            new RawHandler(null, $"\"{c}\" %1"),
+        }, null, exe => exe == b ? "Described" : exe == a ? "Ignored" : " ");
+
+        Assert.Equal(new[] { "Described", "Registered Name", "three" }, rows.Select(r => r.Label));
+    }
+
+    [Fact]
+    public void Skips_the_dispatcher_missing_programs_and_duplicates()
+    {
+        using var tree = new TempTree();
+        var self = tree.File("AppDispatcher.exe");
+        var app = tree.File("app.exe");
+
+        var rows = FileHandlers.Build(new[]
+        {
+            new RawHandler(null, $"\"{self.ToUpperInvariant()}\" \"%1\""),
+            new RawHandler(null, $"\"{Path.Combine(tree.Root, "gone.exe")}\" \"%1\""),
+            new RawHandler(null, $"\"{app}\" \"%1\""),
+            new RawHandler(null, $"\"{app}\" %1"),
+            new RawHandler(null, ""),
+        }, self, NoDescription);
+
+        Assert.Equal(app, rows.Single().Exe);
+    }
+
+    [Fact]
+    public void The_same_program_with_different_arguments_is_kept()
+    {
+        using var tree = new TempTree();
+        var app = tree.File("app.exe");
+
+        var rows = FileHandlers.Build(new[]
+        {
+            new RawHandler("Open", $"\"{app}\" \"%1\""),
+            new RawHandler("Edit", $"\"{app}\" --edit \"%1\""),
+        }, null, NoDescription);
+
+        Assert.Equal(2, rows.Count);
+    }
+
+    [Theory]
+    [InlineData("\"C:\\Program Files\\A\\a.exe\" \"%1\"", "C:\\Program Files\\A\\a.exe", new[] { "{file}" })]
+    [InlineData("\"C:\\A\\a.exe\" --new %1", "C:\\A\\a.exe", new[] { "--new", "{file}" })]
+    [InlineData("C:\\Program Files\\A\\a.exe %L", "C:\\Program Files\\A\\a.exe", new[] { "{file}" })]
+    [InlineData("\"C:\\A\\a.exe\"", "C:\\A\\a.exe", new[] { "{file}" })]
+    [InlineData("\"C:\\A\\a.exe\" \"%1\" %*", "C:\\A\\a.exe", new[] { "{file}" })]
+    [InlineData("\"C:\\A\\a.exe\" --title \"my app\" \"%1\"", "C:\\A\\a.exe", new[] { "--title", "my app", "{file}" })]
+    public void ParseCommand_turns_a_registry_command_into_picker_arguments(string command, string exe, string[] args)
+    {
+        var parsed = FileHandlers.ParseCommand(command);
+        Assert.Equal(exe, parsed?.Exe);
+        Assert.Equal(args, parsed?.Args);
+    }
+}
+
 public class SetupGuideTests
 {
     [Theory]

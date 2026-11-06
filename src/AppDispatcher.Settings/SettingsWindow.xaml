@@ -89,6 +89,14 @@
                                       ToolTip="Editors found on this PC, with each way of opening a window they support."/>
                         </DockPanel>
 
+                        <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                            <TextBlock Text="Windows has" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <Button x:Name="AddHandlerButton" DockPanel.Dock="Right" Content="Add" Width="50" Margin="6,0,0,0" Click="AddHandler_Click"
+                                    ToolTipService.ShowOnDisabled="True" ToolTip="Adds this app to the selected file type."/>
+                            <ComboBox x:Name="HandlerCombo" DisplayMemberPath="Label" ToolTipService.ShowOnDisabled="True"
+                                      ToolTip="Apps Windows already knows can open the selected file type. Each is found from what the app registered when it was installed, so you don't need to look for its .exe file."/>
+                        </DockPanel>
+
                         <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0" Width="70">
                             <Button Content="Up" Padding="0,3" Click="Up_Click" ToolTip="Moves the selected app up. The order here is the order in the picker."/>
                             <Button Content="Down" Padding="0,3" Margin="0,6,0,0" Click="Down_Click" ToolTip="Moves the selected app down. The order here is the order in the picker."/>
