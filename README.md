@@ -131,6 +131,10 @@ Config lives in `%APPDATA%\AppDispatcher\config.json`. On first run, link rules 
 
 The idea for App Dispatcher is Eric's. It started as his WebDispatch, a link picker for browsers and profiles, which this project extends to files and window modes.
 
+## AI disclosure
+
+Most of this project's code and documentation was written by Claude, Anthropic's AI model, using Claude Code. A person at Status Controls directed the work, chose its design and tested it. Most commits carry a `Co-Authored-By: Claude` trailer to show this.
+
 ## License
 
 [MIT](LICENSE)
