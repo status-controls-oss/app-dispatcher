@@ -20,7 +20,7 @@ The row you used last is preselected. If only one app is available for a file, i
 
 Requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) for Settings. Needs no admin rights.
 
-1. Download the zip from this project's GitHub releases and extract it.
+1. Download the zip from [GitHub releases](https://github.com/status-controls-oss/app-dispatcher/releases) and extract it.
 2. Double-click `Install.cmd`. It installs to `%LOCALAPPDATA%\Programs\AppDispatcher` and opens Settings. The files aren't signed, so Windows may show a warning first. To update, run the new version's `Install.cmd`.
 3. On **File types**, add extensions and choose apps for each.
 4. Click **Register**, which is in the tab's banner and on **Windows setup**.
