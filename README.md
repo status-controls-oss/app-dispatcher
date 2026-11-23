@@ -20,8 +20,8 @@ The row you used last is preselected. If only one app is available for a file, i
 
 Requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) for Settings. Needs no admin rights.
 
-1. Download the zip from [GitHub releases](https://github.com/status-controls-oss/app-dispatcher/releases) and extract it.
-2. Double-click `Install.cmd`. It installs to `%LOCALAPPDATA%\Programs\AppDispatcher` and opens Settings. The files aren't signed, so Windows may show a warning first. To update, run the new version's `Install.cmd`.
+1. Download the zip from [GitHub releases](https://github.com/status-controls-oss/app-dispatcher/releases) and extract it. You can [verify it](#verifying-a-download) first.
+2. In the extracted folder, double-click `Install.cmd`. It installs to `%LOCALAPPDATA%\Programs\AppDispatcher` and opens Settings. The files aren't signed, so Windows may show a warning first. To update, run the new version's `Install.cmd`.
 3. On **File types**, add extensions and choose apps for each.
 4. Click **Register**, which is in the tab's banner and on **Windows setup**.
 5. Click **Open Windows Default Apps** on the banner or **Windows setup**, and choose App Dispatcher for each type (and HTTP/HTTPS for links). Windows doesn't allow apps to set this themselves. Until you do, Windows may ask how to open that type, or keep using its current app.
@@ -46,6 +46,27 @@ Requires the .NET 8 SDK and the Visual Studio C++ build tools.
 ```
 
 If you run a build directly, keep it somewhere permanent, because registration records the exe's path.
+
+## Security and privacy
+
+App Dispatcher has no network code. It doesn't check for updates, send telemetry or contact any server. It reads the registry and disk to find apps and browsers, and only writes to these:
+
+- `%APPDATA%\AppDispatcher\config.json`, your settings. A `.tmp` copy is written beside it while saving, and a `.bad` copy is kept if it can't be read.
+- Per-user registry keys under `HKEY_CURRENT_USER\Software`: `Classes` for its file types, its link handler and its place in each type's **Open with** list, `Clients\StartMenuInternet\AppDispatcher`, and its entry in `RegisteredApplications`. It never writes to `HKEY_LOCAL_MACHINE`, and needs no admin rights.
+- The **App Dispatcher Settings** shortcut in your Start menu.
+- The install folder, `%LOCALAPPDATA%\Programs\AppDispatcher` by default.
+
+**Unregister** and the uninstaller remove what they added to each of these, except your settings. The uninstaller deletes only the files it installed, as listed in `manifest.txt`. Empty extension keys such as `HKEY_CURRENT_USER\Software\Classes\.json` can remain, as they may be shared with other apps.
+
+Links and file names come from untrusted sources, so the picker only starts `.exe` programs given by full path, refuses scripts and programs that run commands from their arguments (such as `cmd.exe`, PowerShell, Windows Terminal and WSL), and passes each argument separately rather than building a command line. The apps you add are otherwise trusted with the link or file name, so add only apps that treat it as something to open. To report a vulnerability, see [SECURITY.md](SECURITY.md).
+
+### Verifying a download
+
+Release zips are built by GitHub Actions from the tagged source, not on a developer's PC. Each release lists the zip's SHA-256 hash, which you can compare with `(Get-FileHash .\AppDispatcher-<version>-win-x64.zip).Hash` in PowerShell. To confirm the zip was built from this repo, use the [GitHub CLI](https://cli.github.com/):
+
+```powershell
+gh attestation verify .\AppDispatcher-<version>-win-x64.zip --repo status-controls-oss/app-dispatcher
+```
 
 ## Window modes
 
@@ -123,7 +144,7 @@ Config lives in `%APPDATA%\AppDispatcher\config.json`. On first run, link rules 
 - Opening several selected files at once shows one picker per file, because Explorer starts one process per file.
 - x64 only, as `publish.ps1` targets `win-x64`.
 - An app marked "Run as administrator" in its compatibility settings shows a UAC prompt on every open.
-- Only `.exe` programs can be targets. Scripts such as `.cmd` and `.bat`, and `cmd.exe` itself, are refused, because `cmd.exe` would treat characters in a link or file name as commands. Use the app's own `.exe`, such as `Code.exe` rather than `code.cmd`.
+- Only `.exe` programs can be targets. Scripts such as `.cmd` and `.bat` are refused, and so are programs that run commands from their arguments, such as `cmd.exe`, PowerShell, Windows Terminal and WSL, because they would treat characters in a link or file name as commands. Use the app's own `.exe`, such as `Code.exe` rather than `code.cmd`.
 - Link rules ignore the port, so a rule for `localhost` matches every local port.
 - A row stores its program's path. Apps found by catalog (see [Window modes](#window-modes)) are found again after an update moves them, but an added browser or an app from **Windows has** is hidden until you add it again.
 
