@@ -20,7 +20,7 @@ The row you used last is preselected. If only one app is available for a file, i
 
 Requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) for Settings. Needs no admin rights.
 
-1. Download the zip from this project's GitLab releases and extract it.
+1. Download the zip from this project's GitHub releases and extract it.
 2. Double-click `Install.cmd`. It installs to `%LOCALAPPDATA%\Programs\AppDispatcher` and opens Settings. The files aren't signed, so Windows may show a warning first. To update, run the new version's `Install.cmd`.
 3. On **File types**, add extensions and choose apps for each.
 4. Click **Register**, which is in the tab's banner and on **Windows setup**.
@@ -126,3 +126,11 @@ Config lives in `%APPDATA%\AppDispatcher\config.json`. On first run, link rules 
 - Only `.exe` programs can be targets. Scripts such as `.cmd` and `.bat`, and `cmd.exe` itself, are refused, because `cmd.exe` would treat characters in a link or file name as commands. Use the app's own `.exe`, such as `Code.exe` rather than `code.cmd`.
 - Link rules ignore the port, so a rule for `localhost` matches every local port.
 - A row stores its program's path. Apps found by catalog (see [Window modes](#window-modes)) are found again after an update moves them, but an added browser or an app from **Windows has** is hidden until you add it again.
+
+## Credits
+
+The idea for App Dispatcher is Eric's. It started as his WebDispatch, a link picker for browsers and profiles, which this project extends to files and window modes.
+
+## License
+
+[MIT](LICENSE)

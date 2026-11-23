@@ -18,9 +18,9 @@ Get-ChildItem "$PSScriptRoot\artifacts\AppDispatcher" -File |
     Where-Object Extension -ne '.pdb' |
     Copy-Item -Destination $stage
 Copy-Item "$PSScriptRoot\installer\*" $stage
-Copy-Item "$PSScriptRoot\README.md" $stage
+Copy-Item "$PSScriptRoot\README.md", "$PSScriptRoot\LICENSE" $stage
 
-foreach ($required in 'AppDispatcher.exe', 'AppDispatcher.Settings.exe', 'install.ps1', 'Install.cmd', 'Uninstall.cmd') {
+foreach ($required in 'AppDispatcher.exe', 'AppDispatcher.Settings.exe', 'install.ps1', 'Install.cmd', 'Uninstall.cmd', 'LICENSE') {
     if (-not (Test-Path (Join-Path $stage $required))) { throw "Package is missing $required" }
 }
 
