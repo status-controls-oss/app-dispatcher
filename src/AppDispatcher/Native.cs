@@ -1,5 +1,8 @@
 using System.Runtime.InteropServices;
 
+// Load Windows DLLs only from System32, never from the app's folder, where a planted copy would run.
+[assembly: DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+
 namespace AppDispatcher;
 
 /// <summary>The Win32 surface the picker uses. Only user32, gdi32 and dwmapi, to keep load time down.</summary>

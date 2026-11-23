@@ -35,7 +35,8 @@ A slow picker is worse than the Windows context menu, so time to first paint is 
 
 URLs and file names reach launched apps from untrusted sources, so:
 
-- `Launcher.CanLaunch` allows only `.exe` targets, and not `cmd.exe`. Don't weaken it: `cmd.exe` would treat `&` in a link or file name as a new command, and .NET's quoting doesn't prevent that.
+- `Launcher.CanLaunch` allows only fully qualified `.exe` targets, and refuses the programs in `CommandHosts`, such as `cmd.exe`, PowerShell and `wt.exe`. Don't weaken it: `cmd.exe` would treat `&` in a link or file name as a new command, and .NET's quoting doesn't prevent that. A relative path would be found in the opened file's folder.
+- The installer copies and deletes only the files in the release's `manifest.txt`, using `-LiteralPath`. Don't go back to copying or deleting whole folders: the release may be extracted into Downloads.
 - Pass arguments through `ProcessStartInfo.ArgumentList`, never a built command string.
 - `TargetResolver.Expand` replaces placeholders in a single pass. Chained `Replace` calls would expand placeholder text inside a file's path.
 - `SolutionFinder` must not search shared folders like Downloads, where a planted solution would be offered for everything below it.

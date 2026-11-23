@@ -12,7 +12,7 @@ public partial class SettingsWindow : Window
 {
     sealed record ExtensionRow(ExtensionRule Rule, string Display);
 
-    const string ProgramNotAllowed = "Choose an .exe program. Scripts such as .cmd and .bat files, and cmd.exe, aren't allowed because a link or file name could run commands through them.";
+    const string ProgramNotAllowed = "Choose an .exe program by its full path. Scripts such as .cmd and .bat files, and programs that run commands such as cmd.exe, PowerShell and Windows Terminal, aren't allowed because a link or file name could run commands through them.";
 
     readonly AppConfig _config = AppConfig.Load();
     readonly string _pickerExe = Path.Combine(AppContext.BaseDirectory, "AppDispatcher.exe");

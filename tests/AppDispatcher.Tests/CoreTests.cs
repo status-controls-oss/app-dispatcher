@@ -4,7 +4,10 @@ namespace AppDispatcher.Tests;
 
 public sealed class TempTree : IDisposable
 {
-    public string Root { get; } = Directory.CreateTempSubdirectory("appdispatcher-test").FullName;
+    /// <summary>Not under %TEMP%, where SolutionFinder deliberately finds nothing.</summary>
+    public string Root { get; } = Directory.CreateDirectory(Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "AppDispatcher.Tests", Guid.NewGuid().ToString("N"))).FullName;
 
     public string File(string relative, string content = "")
     {
@@ -110,6 +113,24 @@ public class SolutionBoundaryTests
         var sln = tree.File("repo/App.sln");
 
         Assert.Equal(sln, SolutionFinder.Find(tree.File("repo/src/a.json")));
+    }
+
+    [Fact]
+    public void Nothing_below_an_untrusted_root_gets_a_solution()
+    {
+        using var tree = new TempTree();
+        tree.File("Temp/Temp1_attachment.zip/evil.sln");
+        var file = tree.File("Temp/Temp1_attachment.zip/readme.txt");
+
+        Assert.Null(SolutionFinder.Find(file, Array.Empty<string>(), new[] { Path.Combine(tree.Root, "Temp") }));
+        Assert.NotNull(SolutionFinder.Find(file, Array.Empty<string>(), Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void The_temp_folder_is_untrusted_by_default()
+    {
+        var file = Path.Combine(Path.GetTempPath(), "Temp1_attachment.zip", "readme.txt");
+        Assert.Null(SolutionFinder.Find(file, Array.Empty<string>()));
     }
 }
 
@@ -311,6 +332,18 @@ public class ScriptTargetTests
     [InlineData(@"C:\apps\open", false)]
     [InlineData(@"C:\Windows\System32\cmd.exe", false)]
     [InlineData(@"C:\Windows\System32\CMD.EXE", false)]
+    [InlineData(@"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", false)]
+    [InlineData(@"C:\Program Files\PowerShell\7\pwsh.exe", false)]
+    [InlineData(@"C:\Users\me\AppData\Local\Microsoft\WindowsApps\wt.exe", false)]
+    [InlineData(@"C:\Windows\System32\conhost.exe", false)]
+    [InlineData(@"C:\Windows\System32\wsl.exe", false)]
+    [InlineData(@"C:\Windows\System32\mshta.exe", false)]
+    [InlineData(@"C:\Windows\System32\rundll32.exe", false)]
+    [InlineData("brave.exe", false)]
+    [InlineData(@"apps\brave.exe", false)]
+    [InlineData(@"\apps\brave.exe", false)]
+    [InlineData(@"C:brave.exe", false)]
+    [InlineData(@"\\server\share\brave.exe", true)]
     public void Only_real_programs_can_be_launched(string exe, bool allowed) =>
         Assert.Equal(allowed, Launcher.CanLaunch(exe));
 
@@ -729,8 +762,35 @@ public class AppConfigTests
     [InlineData("github.com/myorg/", "github.com/myorg")]
     [InlineData("http://localhost:3000/app", "localhost/app")]
     [InlineData(" example.com. ", "example.com")]
+    [InlineData("Bücher.example", "xn--bcher-kva.example")]
     public void NormalizeDomain_accepts_domains_and_pasted_links(string raw, string expected) =>
         Assert.Equal(expected, AppConfig.NormalizeDomain(raw));
+
+    [Theory]
+    [InlineData("https://bank.com./")]
+    [InlineData("https://BANK.com./login")]
+    [InlineData("https://www.bank.com./")]
+    public void A_trailing_dot_doesnt_skip_a_rule(string url)
+    {
+        var config = new AppConfig { DefaultBrowser = "Brave" };
+        config.SetRule("bank.com", Rule.ShowPicker, "", "");
+
+        Assert.Null(Direct(config, url));
+    }
+
+    [Theory]
+    [InlineData("https://bücher.example/")]
+    [InlineData("https://xn--bcher-kva.example/")]
+    public void An_international_domain_matches_in_either_form(string url)
+    {
+        var config = new AppConfig { DefaultBrowser = "Brave" };
+        config.SetRule("bücher.example", Rule.ShowPicker, "", "");
+        // Rules saved before hosts were normalized can still be in Unicode.
+        config.Rules.Add(new Rule { Domain = "Straße.example", Browser = Rule.ShowPicker });
+
+        Assert.Null(Direct(config, url));
+        Assert.Null(Direct(config, "https://xn--strae-oqa.example/"));
+    }
 
     [Fact]
     public void An_existing_config_keeps_showing_the_picker_and_the_default_browser_is_saved()

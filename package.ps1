@@ -20,12 +20,17 @@ Get-ChildItem "$PSScriptRoot\artifacts\AppDispatcher" -File |
 Copy-Item "$PSScriptRoot\installer\*" $stage
 Copy-Item "$PSScriptRoot\README.md", "$PSScriptRoot\LICENSE" $stage
 
-foreach ($required in 'AppDispatcher.exe', 'AppDispatcher.Settings.exe', 'install.ps1', 'Install.cmd', 'Uninstall.cmd', 'LICENSE') {
+# The installer copies, and later deletes, only the files listed here.
+$manifest = Join-Path $stage 'manifest.txt'
+@((Get-ChildItem $stage -File).Name) + 'manifest.txt' | Sort-Object | Set-Content $manifest -Encoding utf8
+
+foreach ($required in 'AppDispatcher.exe', 'AppDispatcher.Settings.exe', 'install.ps1', 'Install.cmd', 'Uninstall.cmd', 'LICENSE', 'manifest.txt') {
     if (-not (Test-Path (Join-Path $stage $required))) { throw "Package is missing $required" }
 }
 
 if (Test-Path $zip) { Remove-Item $zip -Force }
-Compress-Archive -Path "$stage\*" -DestinationPath $zip
+# Zipped inside a folder, so "Extract here" in Downloads doesn't scatter the files among others.
+Compress-Archive -Path $stage -DestinationPath $zip
 
 $hash = (Get-FileHash $zip -Algorithm SHA256).Hash
 Write-Host "Packaged $zip ($([math]::Round((Get-Item $zip).Length / 1MB, 1)) MB)"

@@ -13,6 +13,10 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
+# Lists the files in a release. Only these are copied on install and deleted on uninstall, so
+# running this from a folder such as Downloads never copies or deletes anything else there.
+$ManifestName = 'manifest.txt'
+
 function Finish([int]$code) {
     if ($Pause) { [void](Read-Host 'Press Enter to close') }
     exit $code
@@ -34,12 +38,25 @@ function Assert-NotRunning {
 
 function Test-DesktopRuntime {
     $root = Join-Path $env:ProgramFiles 'dotnet\shared\Microsoft.WindowsDesktop.App'
-    (Test-Path $root) -and @(Get-ChildItem $root -Directory -Filter '8.*').Count -gt 0
+    (Test-Path -LiteralPath $root) -and @(Get-ChildItem -LiteralPath $root -Directory -Filter '8.*').Count -gt 0
+}
+
+function Read-Manifest([string]$folder) {
+    $path = Join-Path $folder $ManifestName
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return $null }
+    $names = @(Get-Content -LiteralPath $path | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    # Names only: a path in the manifest could reach outside the folder.
+    foreach ($name in $names) {
+        if ($name -ne [IO.Path]::GetFileName($name) -or $name -in '.', '..') { Stop-WithMessage "$path lists an unexpected file: $name" }
+    }
+    $names
 }
 
 function Remove-App {
     $picker = Join-Path $InstallDir 'AppDispatcher.exe'
-    if (-not (Test-Path $picker)) { Stop-WithMessage "App Dispatcher isn't installed in $InstallDir." }
+    if (-not (Test-Path -LiteralPath $picker -PathType Leaf)) { Stop-WithMessage "App Dispatcher isn't installed in $InstallDir." }
+    $files = Read-Manifest $InstallDir
+    if (-not $files) { Stop-WithMessage "$InstallDir has no $ManifestName, so the files to remove aren't known. Install the latest version first, then uninstall." }
     Assert-NotRunning
 
     $settings = Join-Path $InstallDir 'AppDispatcher.Settings.exe'
@@ -51,11 +68,11 @@ function Remove-App {
 
     # Running from inside the folder would stop it being deleted.
     Set-Location $env:TEMP
-    Remove-Item $InstallDir -Recurse -Force
+    Remove-Files $InstallDir $files
     Write-Host 'App Dispatcher has been removed.'
 
     if ($RemoveSettings) {
-        if (Test-Path $SettingsDir) { Remove-Item $SettingsDir -Recurse -Force }
+        Remove-Files $SettingsDir 'config.json', 'config.json.tmp', 'config.json.bad'
         Write-Host 'Your settings have been deleted.'
     }
     else {
@@ -64,19 +81,35 @@ function Remove-App {
     Write-Host 'File types and links that used it now need a new default app, in Windows Settings > Default apps.'
 }
 
+# Deletes the named files, then the folder only if nothing else is left in it.
+function Remove-Files([string]$folder, [string[]]$names) {
+    foreach ($name in $names) {
+        $path = Join-Path $folder $name
+        if (Test-Path -LiteralPath $path -PathType Leaf) { Remove-Item -LiteralPath $path -Force }
+    }
+    if ((Test-Path -LiteralPath $folder -PathType Container) -and -not (Get-ChildItem -LiteralPath $folder -Force | Select-Object -First 1)) {
+        Remove-Item -LiteralPath $folder -Force
+    }
+}
+
 function Install-App {
     $source = $PSScriptRoot
-    if (-not (Test-Path (Join-Path $source 'AppDispatcher.exe'))) {
-        Stop-WithMessage "Run this from the extracted release folder. AppDispatcher.exe isn't in $source."
-    }
+    $files = Read-Manifest $source
+    if (-not $files) { Stop-WithMessage "Run this from the extracted release folder. $ManifestName isn't in $source." }
+    $missing = @($files | Where-Object { -not (Test-Path -LiteralPath (Join-Path $source $_) -PathType Leaf) })
+    if ($missing) { Stop-WithMessage "The release folder is incomplete. Extract the whole zip again. Missing: $($missing -join ', ')" }
     Assert-NotRunning
 
-    [void](New-Item -ItemType Directory -Force $InstallDir)
-    foreach ($file in Get-ChildItem $source -File) {
-        $target = Join-Path $InstallDir $file.Name
-        Copy-Item $file.FullName $target -Force
+    # Files from an earlier version that this one no longer ships.
+    $previous = Read-Manifest $InstallDir
+    if ($previous) { Remove-Files $InstallDir @($previous | Where-Object { $_ -notin $files }) }
+
+    [void](New-Item -ItemType Directory -Force -Path $InstallDir)
+    foreach ($name in $files) {
+        $target = Join-Path $InstallDir $name
+        Copy-Item -LiteralPath (Join-Path $source $name) -Destination $target -Force
         # Clears the "downloaded from the internet" mark, which otherwise triggers a warning on each launch.
-        Unblock-File $target
+        Unblock-File -LiteralPath $target
     }
     Write-Host "Installed to $InstallDir."
 

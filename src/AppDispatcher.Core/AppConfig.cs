@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -116,8 +117,21 @@ public class AppConfig
         var path = slash < 0 ? "" : d[slash..].TrimEnd('/');
         var port = host.IndexOf(':');
         if (port >= 0) host = host[..port];
-        return host.Trim('.') + path;
+        return HostKey(host) + path;
     }
+
+    /// <summary>
+    /// Compares hosts in one form: "bank.com." is the same site as "bank.com", and an international
+    /// name is the same whether written in Unicode or as punycode, so neither form can skip a rule.
+    /// </summary>
+    static string HostKey(string host)
+    {
+        host = host.Trim('.').ToLowerInvariant();
+        try { return host.Length == 0 ? host : Idn.GetAscii(host); }
+        catch (ArgumentException) { return host; }
+    }
+
+    static readonly IdnMapping Idn = new();
 
     /// <summary>
     /// A rule for "example.com" matches example.com and any subdomain, and a rule for
@@ -125,7 +139,7 @@ public class AppConfig
     /// </summary>
     public Rule? FindRule(string host, string path = "/")
     {
-        host = host.ToLowerInvariant();
+        host = HostKey(host);
         return Rules
             .Where(r => RuleMatches(r.Domain, host, path))
             .OrderByDescending(r => r.Domain.Length)
@@ -135,7 +149,7 @@ public class AppConfig
     static bool RuleMatches(string rule, string host, string path)
     {
         var slash = rule.IndexOf('/');
-        var ruleHost = slash < 0 ? rule : rule[..slash];
+        var ruleHost = HostKey(slash < 0 ? rule : rule[..slash]);
         if (host != ruleHost && !host.EndsWith("." + ruleHost)) return false;
         if (slash < 0) return true;
         var rulePath = rule[slash..];

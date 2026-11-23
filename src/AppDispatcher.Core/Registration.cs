@@ -23,6 +23,11 @@ public static partial class Registration
     public static void Sync(string pickerExe, IReadOnlyCollection<ExtensionRule> extensions)
     {
         var cmd = $"\"{pickerExe}\" \"%1\"";
+        // An extension becomes part of registry key paths, so one edited by hand to contain a
+        // backslash would otherwise create keys elsewhere under Software\Classes.
+        extensions = extensions
+            .Where(e => string.Equals(AppConfig.NormalizeExtension(e.Extension), e.Extension, StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
         using (var k = Registry.CurrentUser.CreateSubKey(Classes + UrlProgId))
         {
