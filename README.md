@@ -43,7 +43,9 @@ Registration is per-user and needs no admin rights. **Unregister** removes it, a
 
 ### Uninstall
 
-Run `Uninstall.cmd` from the install folder. It removes the registration, the Start menu entry and the program, and keeps your settings. To delete those too, run `install.ps1 -Uninstall -RemoveSettings` in PowerShell. File types and links that used App Dispatcher then need a new default chosen in Windows.
+Run `Uninstall.cmd` from the install folder. It removes the registration, the Start menu entry and the program, and keeps your settings. To delete those too, run `install.ps1 -Uninstall -RemoveSettings` in PowerShell.
+
+Windows doesn't let apps choose default apps, so file types and links that used App Dispatcher need a new default chosen by you. To help, Settings records which app each file type and link used before you added it or clicked **Register**. **Unregister** and the uninstaller then list them, such as "`.txt` files used Notepad" and "Links used Microsoft Edge", and offer to open Windows Default Apps. Types set up before version 0.1.4 may show "no earlier app was recorded".
 
 ### Build from source
 
@@ -60,7 +62,7 @@ If you run a build directly, keep it somewhere permanent, because registration r
 
 App Dispatcher has no network code. It doesn't check for updates, send telemetry or contact any server. It reads the registry and disk to find apps and browsers, and only writes to these:
 
-- `%APPDATA%\AppDispatcher\config.json`, your settings. A `.tmp` copy is written beside it while saving, and a `.bad` copy is kept if it can't be read.
+- `%APPDATA%\AppDispatcher\config.json`, your settings, including the app each file type and link used before App Dispatcher. A `.tmp` copy is written beside it while saving, and a `.bad` copy is kept if it can't be read.
 - Per-user registry keys under `HKEY_CURRENT_USER\Software`: `Classes` for its file types, its link handler and its place in each type's **Open with** list, `Clients\StartMenuInternet\AppDispatcher`, and its entry in `RegisteredApplications`. It never writes to `HKEY_LOCAL_MACHINE`, and needs no admin rights.
 - The **App Dispatcher Settings** shortcut in your Start menu.
 - The install folder, `%LOCALAPPDATA%\Programs\AppDispatcher` by default.

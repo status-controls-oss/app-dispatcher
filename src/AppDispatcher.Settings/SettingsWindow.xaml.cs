@@ -39,6 +39,8 @@ public partial class SettingsWindow : Window
         RefreshRules();
         RefreshExtensions(_config.Extensions.FirstOrDefault());
         RefreshStatus();
+        // Also catches types added before 0.1.4 that the user hasn't switched to App Dispatcher yet.
+        SnapshotDefaults(_config.Extensions.Select(x => x.Extension));
     }
 
     ExtensionRule? SelectedRule => (ExtensionList.SelectedItem as ExtensionRow)?.Rule;
@@ -112,15 +114,39 @@ public partial class SettingsWindow : Window
 
     void Register_Click(object s, RoutedEventArgs e) => Guarded(() =>
     {
+        SnapshotDefaults(_config.Extensions.Select(x => x.Extension));
         Registration.Sync(_pickerExe, _config.Extensions);
         Shortcut.Create(Shortcut.StartMenuPath, Environment.ProcessPath!, "Choose which apps App Dispatcher offers for files and links.");
     });
 
     void Unregister_Click(object s, RoutedEventArgs e) => Guarded(() =>
     {
+        var lines = Registration.RestoreLines(_config);
         Registration.Unregister();
         Shortcut.Delete(Shortcut.StartMenuPath);
+        if (lines.Count == 0) return;
+
+        var list = string.Join("\n", lines.Select(l => "•  " + l));
+        var answer = MessageBox.Show(this,
+            $"App Dispatcher is unregistered. Windows was sending these to it:\n\n{list}\n\n" +
+            "Windows will ask which app to use the next time you open one, or you can choose them again in Default Apps. Open Windows Default Apps now?",
+            "App Dispatcher", MessageBoxButton.YesNo, MessageBoxImage.Information);
+        if (answer == MessageBoxResult.Yes)
+            Process.Start(new ProcessStartInfo(Registration.AllDefaultAppsUri) { UseShellExecute = true });
     });
+
+    /// <summary>Remembers each type's current app before the user switches it to App Dispatcher.</summary>
+    void SnapshotDefaults(IEnumerable<string> extensions)
+    {
+        try
+        {
+            if (Registration.SnapshotDefaults(_config.PreviousDefaults, extensions)) _config.Save();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Only a help text depends on it, so it mustn't stop the user's change.
+        }
+    }
 
     void Refresh_Click(object s, RoutedEventArgs e)
     {
@@ -222,6 +248,7 @@ public partial class SettingsWindow : Window
         var rule = _config.FindExtension(ext);
         if (rule == null)
         {
+            SnapshotDefaults(new[] { ext });
             rule = new ExtensionRule { Extension = ext };
             _config.Extensions.Add(rule);
             Commit();

@@ -60,6 +60,9 @@ public class AppConfig
     public List<ExtensionRule> Extensions { get; set; } = new();
     public List<CustomBrowser> CustomBrowsers { get; set; } = new();
 
+    /// <summary>What opened each file type and link scheme before App Dispatcher, to guide the user in restoring them.</summary>
+    public List<PreviousDefault> PreviousDefaults { get; set; } = new();
+
     static string AppData => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
     /// <summary>Overridable so tests never touch the real config.</summary>

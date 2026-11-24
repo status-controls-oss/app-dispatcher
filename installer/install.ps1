@@ -63,7 +63,13 @@ function Remove-App {
     if (-not (Test-DesktopRuntime)) {
         Stop-WithMessage 'Removing App Dispatcher from Windows needs the .NET 8 Desktop Runtime, which is missing. Install it from https://dotnet.microsoft.com/download/dotnet/8.0 and try again.'
     }
-    $cleanup = Start-Process $settings -ArgumentList '--unregister' -Wait -PassThru
+    # Settings writes the file types and links that Windows was sending to it, with the app each used before.
+    $restoreFile = [IO.Path]::GetTempFileName()
+    try {
+        $cleanup = Start-Process $settings -ArgumentList '--unregister' -Wait -PassThru -RedirectStandardOutput $restoreFile
+        $restore = @(Get-Content -LiteralPath $restoreFile -Encoding UTF8 | Where-Object { $_ })
+    }
+    finally { Remove-Item -LiteralPath $restoreFile -Force -ErrorAction SilentlyContinue }
     if ($cleanup.ExitCode -ne 0) { Stop-WithMessage 'Could not remove App Dispatcher from Windows, so nothing was deleted.' }
 
     # Running from inside the folder would stop it being deleted.
@@ -78,7 +84,17 @@ function Remove-App {
     else {
         Write-Host "Your settings were kept in $SettingsDir."
     }
-    Write-Host 'File types and links that used it now need a new default app, in Windows Settings > Default apps.'
+    Show-RestoreList $restore
+}
+
+# Windows doesn't let apps choose defaults, so this lists what to choose again by hand.
+function Show-RestoreList([string[]]$lines) {
+    if (-not $lines) { return }
+    Write-Host ''
+    Write-Host 'Windows was sending these to App Dispatcher:'
+    foreach ($line in $lines) { Write-Host "  $line" }
+    Write-Host 'Windows will ask which app to use the next time you open one, or you can choose them again in Windows Settings > Default apps.'
+    if ($Pause -and (Read-Host 'Open Default apps now? [Y/n]') -notmatch '^\s*n') { Start-Process 'ms-settings:defaultapps' }
 }
 
 # Deletes the named files, then the folder only if nothing else is left in it.

@@ -19,6 +19,9 @@ public static partial class Registration
     /// <summary>Opens Windows' Default Apps page directly on this app's entry.</summary>
     public const string DefaultAppsUri = "ms-settings:defaultapps?registeredAppUser=" + AppName;
 
+    /// <summary>Opens Windows' Default Apps page itself, for after this app is unregistered.</summary>
+    public const string AllDefaultAppsUri = "ms-settings:defaultapps";
+
     /// <summary>Writes or updates everything, removing file types that are no longer configured.</summary>
     public static void Sync(string pickerExe, IReadOnlyCollection<ExtensionRule> extensions)
     {
@@ -84,6 +87,52 @@ public static partial class Registration
     public static bool IsDefaultForLinks() => new[] { "http", "https" }.All(scheme =>
         string.Equals(CurrentProgId(scheme, AssocfIsProtocol), UrlProgId, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// Records the app Windows uses now for each extension and for http/https, skipping any that
+    /// already use App Dispatcher. Returns whether the snapshot changed, so the caller can save.
+    /// </summary>
+    public static bool SnapshotDefaults(List<PreviousDefault> snapshot, IEnumerable<string> extensions)
+    {
+        var changed = false;
+        foreach (var key in ValidKeys(extensions).Concat(PreviousDefaults.LinkSchemes))
+            if (CurrentDefault(key) is { } current)
+                changed |= PreviousDefaults.Record(snapshot, current);
+        return changed;
+    }
+
+    /// <summary>The file types and link schemes Windows sends to App Dispatcher now, as chosen by the user.</summary>
+    /// <param name="extensions">Checked as well as the ones registered, such as types removed from the config.</param>
+    public static List<string> KeysSentToUs(IEnumerable<string> extensions) =>
+        ValidKeys(extensions.Concat(RegisteredExtensions()))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Concat(PreviousDefaults.LinkSchemes)
+            .Where(key => PreviousDefaults.IsOurs(CurrentProgId(key, FlagsFor(key))))
+            .ToList();
+
+    /// <summary>What to choose again in Windows. Call it before <see cref="Unregister"/>, which removes what it checks for.</summary>
+    public static List<string> RestoreLines(AppConfig config) => PreviousDefaults.RestoreLines(
+        KeysSentToUs(config.Extensions.Select(x => x.Extension).Concat(config.PreviousDefaults.Select(p => p.Key))),
+        config.PreviousDefaults);
+
+    static IEnumerable<string> ValidKeys(IEnumerable<string> extensions) =>
+        extensions.Where(e => AppConfig.NormalizeExtension(e) is { } n && string.Equals(n, e, StringComparison.OrdinalIgnoreCase));
+
+    static int FlagsFor(string key) => key.StartsWith('.') ? 0 : AssocfIsProtocol;
+
+    static PreviousDefault? CurrentDefault(string key)
+    {
+        var flags = FlagsFor(key);
+        if (CurrentProgId(key, flags) is not { Length: > 0 } progId) return null;
+        return new PreviousDefault
+        {
+            Key = key,
+            ProgId = progId,
+            Name = Query(key, AssocStrFriendlyAppName, flags),
+            // Fails without a verb, even for ordinary desktop apps.
+            Exe = Query(key, AssocStrExecutable, flags, "open"),
+        };
+    }
+
     static string ProgId(string extension) => $"{FileProgIdPrefix}{extension}";
 
     static IEnumerable<string> RegisteredExtensions()
@@ -121,6 +170,8 @@ public static partial class Registration
             open?.DeleteValue(progId, false);
     }
 
+    const int AssocStrExecutable = 2;
+    const int AssocStrFriendlyAppName = 4;
     const int AssocStrProgId = 20;
     const int AssocfIsProtocol = 0x1000;
     const int ShcneAssocChanged = 0x08000000;
@@ -131,11 +182,14 @@ public static partial class Registration
     [LibraryImport("shell32")]
     private static partial void SHChangeNotify(int eventId, uint flags, nint item1, nint item2);
 
-    static unsafe string? CurrentProgId(string extension, int flags = 0)
+    static string? CurrentProgId(string extension, int flags = 0) => Query(extension, AssocStrProgId, flags);
+
+    static unsafe string? Query(string assoc, int str, int flags, string? verb = null)
     {
-        var buffer = stackalloc char[256];
-        uint length = 256;
-        return AssocQueryString(flags, AssocStrProgId, extension, null, buffer, ref length) == 0
+        const int capacity = 1024;
+        var buffer = stackalloc char[capacity];
+        uint length = capacity;
+        return AssocQueryString(flags, str, assoc, verb, buffer, ref length) == 0
             ? new string(buffer)
             : null;
     }

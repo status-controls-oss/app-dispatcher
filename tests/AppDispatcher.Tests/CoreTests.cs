@@ -849,6 +849,24 @@ public class AppConfigTests
     }
 
     [Fact]
+    public void Previous_defaults_survive_a_save_and_a_config_without_them_still_loads()
+    {
+        using var tree = new TempTree();
+        var original = AppConfig.PathOnDisk;
+        AppConfig.PathOnDisk = tree.File("config.json", """{ "Rules": [] }""");
+        try
+        {
+            Assert.Empty(AppConfig.Load().PreviousDefaults);
+
+            AppConfig.Update(c => c.PreviousDefaults.Add(new PreviousDefault { Key = ".txt", ProgId = "txtfile", Name = "Notepad", Exe = @"C:\Windows\notepad.exe" }));
+
+            var saved = AppConfig.Load().PreviousDefaults.Single();
+            Assert.Equal((".txt", "txtfile", "Notepad", @"C:\Windows\notepad.exe"), (saved.Key, saved.ProgId, saved.Name, saved.Exe));
+        }
+        finally { AppConfig.PathOnDisk = original; }
+    }
+
+    [Fact]
     public void Corrupt_config_is_kept_aside_instead_of_being_overwritten()
     {
         using var tree = new TempTree();
@@ -861,4 +879,81 @@ public class AppConfigTests
         }
         finally { AppConfig.PathOnDisk = original; }
     }
+}
+
+public class PreviousDefaultsTests
+{
+    static PreviousDefault Default(string key, string progId, string? name = null, string? exe = null) =>
+        new() { Key = key, ProgId = progId, Name = name, Exe = exe };
+
+    [Fact]
+    public void Records_the_current_app_but_never_App_Dispatcher_itself()
+    {
+        var snapshot = new List<PreviousDefault>();
+
+        Assert.True(PreviousDefaults.Record(snapshot, Default(".txt", "txtfile", "Notepad")));
+        Assert.False(PreviousDefaults.Record(snapshot, Default(".txt", "AppDispatcher.File.txt", "App Dispatcher")));
+        Assert.False(PreviousDefaults.Record(snapshot, Default(".md", "appdispatcher.file.md")));
+
+        Assert.Equal("Notepad", snapshot.Single().Name);
+    }
+
+    [Fact]
+    public void A_later_choice_of_another_app_replaces_the_earlier_one()
+    {
+        var snapshot = new List<PreviousDefault> { Default(".txt", "txtfile", "Notepad") };
+
+        Assert.False(PreviousDefaults.Record(snapshot, Default(".TXT", "txtfile", "Notepad")));
+        Assert.True(PreviousDefaults.Record(snapshot, Default(".txt", "VSCode.txt", "Visual Studio Code")));
+
+        Assert.Equal("Visual Studio Code", snapshot.Single().Name);
+    }
+
+    [Fact]
+    public void Lists_links_once_when_both_schemes_used_the_same_browser()
+    {
+        var snapshot = new List<PreviousDefault>
+        {
+            Default("http", "MSEdgeHTM", "Microsoft Edge"),
+            Default("https", "MSEdgeHTM", "Microsoft Edge"),
+            Default(".txt", "txtfile", "Notepad"),
+        };
+
+        var lines = PreviousDefaults.RestoreLines(new[] { ".txt", "https", "http" }, snapshot);
+
+        Assert.Equal(new[] { "Links used Microsoft Edge", ".txt files used Notepad" }, lines);
+    }
+
+    [Fact]
+    public void Lists_each_scheme_when_they_used_different_browsers()
+    {
+        var snapshot = new List<PreviousDefault>
+        {
+            Default("http", "FirefoxURL", "Firefox"),
+            Default("https", "MSEdgeHTM", "Microsoft Edge"),
+        };
+
+        var lines = PreviousDefaults.RestoreLines(new[] { "https", "http" }, snapshot);
+
+        Assert.Equal(new[] { "HTTP links used Firefox", "HTTPS links used Microsoft Edge" }, lines);
+    }
+
+    [Fact]
+    public void Only_types_sent_to_App_Dispatcher_are_listed_and_unknown_ones_say_so()
+    {
+        var snapshot = new List<PreviousDefault>
+        {
+            Default(".txt", "txtfile", "Notepad"),
+            Default(".log", "logfile", null, @"C:\Tools\LogViewer.exe"),
+            Default("http", "MSEdgeHTM", "Microsoft Edge"),
+        };
+
+        var lines = PreviousDefaults.RestoreLines(new[] { ".md", ".log" }, snapshot);
+
+        Assert.Equal(new[] { ".log files used LogViewer", ".md files: no earlier app was recorded" }, lines);
+    }
+
+    [Fact]
+    public void Nothing_to_restore_when_Windows_sent_nothing_to_App_Dispatcher() =>
+        Assert.Empty(PreviousDefaults.RestoreLines(Array.Empty<string>(), new List<PreviousDefault> { Default(".txt", "txtfile", "Notepad") }));
 }
