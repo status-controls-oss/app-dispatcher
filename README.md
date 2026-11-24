@@ -161,6 +161,10 @@ Config lives in `%APPDATA%\AppDispatcher\config.json`. On first run, link rules 
 - Link rules ignore the port, so a rule for `localhost` matches every local port.
 - A row stores its program's path. Apps found by catalog (see [Window modes](#window-modes)) are found again after an update moves them, but an added browser or an app from **Windows has** is hidden until you add it again.
 
+## Feedback
+
+Bug reports and suggestions are welcome as [issues](https://github.com/status-controls-oss/app-dispatcher/issues). Pull requests aren't being accepted for now. To report a vulnerability, see [SECURITY.md](SECURITY.md) rather than opening an issue.
+
 ## Credits
 
 The idea for App Dispatcher is Eric's. It started as his WebDispatch, a link picker for browsers and profiles, which this project extends to files and window modes.
