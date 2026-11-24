@@ -2,7 +2,7 @@
 
 Makes Windows ask which app should open a file or link. Register it as the default for a file type, list the apps that make sense for that type, and double-clicking a file shows a picker in well under 100 ms.
 
-It grew out of Eric's WebDispatch, whose link handling it keeps and extends: links can show a picker of browsers and profiles, or go straight to a default browser, with rules for specific sites either way.
+Links can show a picker of browsers and profiles, or go straight to a default browser, with rules for specific sites either way.
 
 <p>
   <img src="docs/images/picker-qsys.png" width="400" alt="The picker for a .qsys file, listing six installed versions of Q-SYS Designer">
@@ -133,7 +133,7 @@ Startup time decides whether this is worth using, so the two jobs are built diff
 | Exe | Built with | Time to visible window |
 |---|---|---|
 | `AppDispatcher.exe` (picker) | Native AOT, raw Win32 | ~30 ms |
-| WebDispatch's WPF picker, for comparison | WPF, JIT | ~450 ms |
+| A comparable WPF picker | WPF, JIT | ~450 ms |
 | The same WPF picker with ReadyToRun | WPF, precompiled | ~440 ms |
 | `AppDispatcher.Settings.exe` | WPF | Not measured; speed doesn't matter here |
 
