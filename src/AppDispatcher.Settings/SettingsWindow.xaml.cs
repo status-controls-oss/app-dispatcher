@@ -30,6 +30,8 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
+        var version = typeof(SettingsWindow).Assembly.GetName().Version;
+        VersionText.Text = version == null ? "" : $"Version {version.ToString(3)}";
         CatalogCombo.ItemsSource = EditorCatalog.Discover();
         CatalogCombo.SelectedIndex = 0;
         DetectBrowsers();
@@ -131,6 +133,13 @@ public partial class SettingsWindow : Window
     {
         var alreadyListed = BrowserDiscovery.Discover(Array.Empty<CustomBrowser>(), null).Select(b => b.ExePath);
         _detectedBrowsers = BrowserCatalog.Detect(alreadyListed.Append(_pickerExe));
+    }
+
+    /// <summary>The About tab's links are fixed GitHub pages, opened in the default browser.</summary>
+    void Link_RequestNavigate(object s, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
     }
 
     void DefaultApps_Click(object s, RoutedEventArgs e) =>

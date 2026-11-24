@@ -205,6 +205,43 @@
                     </StackPanel>
                 </StackPanel>
             </TabItem>
+
+            <TabItem Header="About" ToolTip="Version, license, and where to get help or report a problem.">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="8">
+                        <TextBlock Text="App Dispatcher" FontSize="18" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="VersionText" Margin="0,2,0,12" Foreground="{x:Static SystemColors.GrayTextBrush}"/>
+
+                        <TextBlock TextWrapping="Wrap" Margin="0,0,0,12">
+                            Copyright © 2026 Status Controls. Free and open source under the
+                            <Hyperlink NavigateUri="https://github.com/status-controls-oss/app-dispatcher/blob/main/LICENSE" RequestNavigate="Link_RequestNavigate">MIT License</Hyperlink>.
+                        </TextBlock>
+
+                        <TextBlock FontWeight="SemiBold" Text="Help and contact"/>
+                        <TextBlock Margin="0,4,0,12" LineHeight="22">
+                            <Hyperlink NavigateUri="https://github.com/status-controls-oss/app-dispatcher" RequestNavigate="Link_RequestNavigate">Project page and documentation</Hyperlink>
+                            <LineBreak/>
+                            <Hyperlink NavigateUri="https://github.com/status-controls-oss/app-dispatcher/releases" RequestNavigate="Link_RequestNavigate">Download the latest version</Hyperlink>
+                            <LineBreak/>
+                            <Hyperlink NavigateUri="https://github.com/status-controls-oss/app-dispatcher/issues" RequestNavigate="Link_RequestNavigate">Report a problem or suggest a feature</Hyperlink>
+                            <LineBreak/>
+                            <Hyperlink NavigateUri="https://github.com/status-controls-oss/app-dispatcher/security/advisories/new" RequestNavigate="Link_RequestNavigate">Report a security vulnerability privately</Hyperlink>
+                        </TextBlock>
+
+                        <TextBlock FontWeight="SemiBold" Text="Privacy"/>
+                        <TextBlock Margin="0,4,0,12" TextWrapping="Wrap"
+                                   Text="App Dispatcher has no network code. It doesn't check for updates, send telemetry or contact any server, so these links open in your browser and nothing is sent by the app itself."/>
+
+                        <TextBlock FontWeight="SemiBold" Text="Credits"/>
+                        <TextBlock Margin="0,4,0,12" TextWrapping="Wrap"
+                                   Text="The idea for App Dispatcher is Eric's. It started as his WebDispatch, a link picker for browsers and profiles, which this project extends to files and window modes."/>
+
+                        <TextBlock FontWeight="SemiBold" Text="AI disclosure"/>
+                        <TextBlock Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Text="Most of this project's code and documentation was written by Claude, Anthropic's AI model, using Claude Code. A person at Status Controls directed the work, chose its design and tested it."/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
         </TabControl>
     </DockPanel>
 </Window>

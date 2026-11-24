@@ -28,6 +28,8 @@ Requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotn
 
 The banners on **File types** and **Links** show what's still needed. **Refresh status** checks again, and also looks for newly installed apps and browsers. **Windows has** lists the apps Windows already associates with that type, such as each installed version of an app, so most can be added without finding the program yourself. Microsoft Store apps aren't listed, because they can't be launched by a command line this way.
 
+Settings' **About** tab shows the version, license and links for help and for reporting problems.
+
 **Register** also adds **App Dispatcher Settings** to the Start menu. You can also reach Settings from the gear in the picker, or by running `AppDispatcher.exe` with no arguments. The picker itself has no Start menu entry, because it only opens when given a file or link.
 
 Registration is per-user and needs no admin rights. **Unregister** removes it, along with the Start menu entry. Any file type still set to App Dispatcher then needs a new default chosen in Windows.
