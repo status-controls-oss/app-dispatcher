@@ -115,6 +115,13 @@
                         <ComboBox x:Name="DefaultLinkCombo" DisplayMemberPath="Display" SelectionChanged="DefaultLink_SelectionChanged"
                                   ToolTip="What happens to a link that no rule below matches. Show the picker to choose each time, or pick a browser to open those links straight away and use rules for the exceptions."/>
                     </DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <TextBlock Text="Try a link" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <Button DockPanel.Dock="Right" Content="Open" Width="60" Margin="8,0,0,0" Click="TryLink_Click"
+                                ToolTip="Opens the link the way Windows opens any clicked link, so you see what really happens: the picker, the browser a rule chooses, or your old browser if App Dispatcher isn't the default for links yet."/>
+                        <TextBox x:Name="TryLinkBox" Text="https://example.com/" VerticalContentAlignment="Center"
+                                 ToolTip="A web link to test. Try one that a rule below matches, such as github.com/myorg, to check the rule."/>
+                    </DockPanel>
                     <GroupBox Header="Other browsers (Chrome, Edge and Firefox are added automatically)" DockPanel.Dock="Bottom" Padding="6" Margin="0,8,0,0">
                         <Grid>
                             <Grid.ColumnDefinitions>

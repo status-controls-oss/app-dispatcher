@@ -120,6 +120,8 @@ Declining Rider's trust prompt still opens the file, in your current Rider windo
 
 A rule matches a domain and its subdomains, such as `github.com`. Adding a path, such as `github.com/myorg`, matches only that part of the site. You can also paste a whole link. When several rules match, the most specific one wins. If a rule's browser is no longer available, the picker opens instead.
 
+To check what happens, enter a link in **Try a link** and click **Open**. It opens the way any clicked link does, starting with Windows' default, so if App Dispatcher isn't the default for links yet, it opens in your old browser.
+
 Chrome, Edge and Firefox are detected automatically, with one row per profile.
 
 To add any other browser, use **Other browsers** on the Links tab in Settings. **Found on this PC** offers browsers registered with Windows, plus common ones from a built-in list, with one entry per profile where the profiles can be read. Detection runs only in Settings, so it never slows the picker.

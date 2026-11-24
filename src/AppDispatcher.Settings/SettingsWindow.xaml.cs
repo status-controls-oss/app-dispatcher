@@ -417,6 +417,20 @@ public partial class SettingsWindow : Window
         Commit();
     }
 
+    /// <summary>
+    /// Hands the link to Windows rather than to the picker, to test the whole path from Windows' default.
+    /// Only web links: the shell would also run a program or open a file given here.
+    /// </summary>
+    void TryLink_Click(object s, RoutedEventArgs e)
+    {
+        if (Launcher.WebLink(TryLinkBox.Text) is not { } url)
+        {
+            MessageBox.Show(this, "Enter a web link, such as https://example.com/.", "App Dispatcher", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        Process.Start(new ProcessStartInfo(url.AbsoluteUri) { UseShellExecute = true });
+    }
+
     void BrowseBrowser_Click(object s, RoutedEventArgs e) => BrowseProgram(BrowserExe, BrowserLabel);
 
     void AddDetected_Click(object s, RoutedEventArgs e)

@@ -964,3 +964,20 @@ public class PreviousDefaultsTests
     public void Nothing_to_restore_when_Windows_sent_nothing_to_App_Dispatcher() =>
         Assert.Empty(PreviousDefaults.RestoreLines(Array.Empty<string>(), new List<PreviousDefault> { Default(".txt", "txtfile", "Notepad") }));
 }
+
+public class TryLinkTests
+{
+    [Theory]
+    [InlineData("https://example.com/", "https://example.com/")]
+    [InlineData("  github.com/myorg ", "https://github.com/myorg")]
+    [InlineData("HTTP://Example.com/a?b=1", "http://example.com/a?b=1")]
+    [InlineData("file:///C:/Windows/notepad.exe", null)]
+    [InlineData(@"C:\Windows\notepad.exe", null)]
+    [InlineData(@"\server\share\run.exe", null)]
+    [InlineData("ms-settings:defaultapps", null)]
+    [InlineData("javascript:alert(1)", null)]
+    [InlineData("ftp://example.com/", null)]
+    [InlineData("", null)]
+    public void Only_web_links_are_handed_to_Windows(string typed, string? expected) =>
+        Assert.Equal(expected, Launcher.WebLink(typed)?.AbsoluteUri);
+}

@@ -25,6 +25,19 @@ public static partial class Launcher
     };
 
     /// <summary>
+    /// An http or https link from what was typed, adding https:// to a bare domain. Anything else is
+    /// refused, because the shell would also run a program or open a file it was given.
+    /// </summary>
+    public static Uri? WebLink(string typed)
+    {
+        typed = typed.Trim();
+        if (!typed.Contains("://")) typed = "https://" + typed;
+        return Uri.TryCreate(typed, UriKind.Absolute, out var url) && url.Scheme is "http" or "https" && url.Host.Length > 0
+            ? url
+            : null;
+    }
+
+    /// <summary>
     /// Only real programs, given by full path, can be launched. A relative path would be found in the
     /// picker's working directory, which Explorer sets to the opened file's folder.
     /// </summary>
