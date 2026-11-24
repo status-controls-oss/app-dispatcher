@@ -10,8 +10,9 @@ $name = "AppDispatcher-$version-win-x64"
 $stage = Join-Path $PSScriptRoot "artifacts\release\$name"
 $zip = Join-Path $PSScriptRoot "artifacts\$name.zip"
 
-if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
+# Emptied rather than deleted, as a console left open in it after a test install locks the folder.
 [void](New-Item -ItemType Directory -Force $stage)
+Get-ChildItem -LiteralPath $stage -Force | Remove-Item -Recurse -Force
 
 # Debug symbols are large and only useful for development.
 Get-ChildItem "$PSScriptRoot\artifacts\AppDispatcher" -File |
