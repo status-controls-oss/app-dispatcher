@@ -55,6 +55,10 @@ jobs:
           HASH: ${{ steps.package.outputs.hash }}
         run: |
           $notes = @"
+          ## Install
+
+          Download **$env:NAME** below, not "Source code". Extract it and run ``Install.cmd``. See the [README](https://github.com/status-controls-oss/app-dispatcher#install) for setup.
+
           ## Verify the download
 
           SHA-256 of ``$env:NAME``:

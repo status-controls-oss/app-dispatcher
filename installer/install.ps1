@@ -95,7 +95,13 @@ function Remove-Files([string]$folder, [string[]]$names) {
 function Install-App {
     $source = $PSScriptRoot
     $files = Read-Manifest $source
-    if (-not $files) { Stop-WithMessage "Run this from the extracted release folder. $ManifestName isn't in $source." }
+    if (-not $files) {
+        # GitHub offers the source code beside each release, and it contains this script too.
+        if (Test-Path -LiteralPath (Join-Path $source '..\src') -PathType Container) {
+            Stop-WithMessage "This is App Dispatcher's source code, not the release. Download AppDispatcher-<version>-win-x64.zip from https://github.com/status-controls-oss/app-dispatcher/releases rather than 'Source code', extract it, and run Install.cmd from there."
+        }
+        Stop-WithMessage "Run this from the extracted release folder. $ManifestName isn't in $source."
+    }
     $missing = @($files | Where-Object { -not (Test-Path -LiteralPath (Join-Path $source $_) -PathType Leaf) })
     if ($missing) { Stop-WithMessage "The release folder is incomplete. Extract the whole zip again. Missing: $($missing -join ', ')" }
     Assert-NotRunning
