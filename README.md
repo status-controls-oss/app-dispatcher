@@ -124,11 +124,11 @@ To check what happens, enter a link in **Try a link** and click **Open**. It ope
 
 Chrome, Edge and Firefox are detected automatically, with one row per profile.
 
-To add any other browser, use **Browsers in the picker** on the Links tab in Settings. **Found on this PC** offers browsers registered with Windows, plus common ones from a built-in list, with one entry per profile where the profiles can be read. Detection runs only in Settings, so it never slows the picker.
+To add any other browser, use the **Browsers** tab in Settings. **Found on this PC** offers browsers registered with Windows, plus common ones from a built-in list, with one entry per profile where the profiles can be read. Detection runs only in Settings, so it never slows the picker.
 
 To add one by hand, give it a label, a program and arguments. `{url}` is replaced with the link, and is added at the end if you leave it out, for example `--incognito {url}`. Add one entry per profile or mode you want as a row.
 
-**Browsers in the picker** lists every browser and profile in the picker's order. **Up** and **Down** change it, and browsers found later go at the end. An added browser whose program is missing is hidden from the picker, and marked here so you can remove it. Removing one also removes its "Always open" rules. Chrome, Edge and Firefox can be moved but not removed, as they're found automatically.
+The **Browsers** tab lists every browser and profile in the picker's order. **Up** and **Down** change it, and browsers found later go at the end. An added browser whose program is missing is hidden from the picker, and marked here so you can remove it. Removing one also removes its "Always open" rules. Chrome, Edge and Firefox can be moved but not removed, as they're found automatically.
 
 ## Why two programs
 

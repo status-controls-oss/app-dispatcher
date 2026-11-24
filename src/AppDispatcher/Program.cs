@@ -65,7 +65,7 @@ internal static class Program
             return TryLaunch(() => target.Launch(url)) ? 0 : 1;
 
         if (browsers.Count == 0)
-            return Fail("No browsers were found. Chrome, Edge and Firefox are detected automatically; add any other on the Links tab in Settings.");
+            return Fail("No browsers were found. Chrome, Edge and Firefox are detected automatically; add any other on the Browsers tab in Settings.");
 
         var last = browsers.FindIndex(b => config.LastBrowser != null && b.Matches(config.LastBrowser, config.LastProfileId ?? ""));
         var rows = browsers.Select(b => new PickerRow(b.Display, b.ExePath)).ToList();
