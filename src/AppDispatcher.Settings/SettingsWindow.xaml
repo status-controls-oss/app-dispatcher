@@ -203,6 +203,9 @@
                         <Button Content="Refresh status" Padding="10,3" Margin="8,0,0,0" Click="Refresh_Click"
                                 ToolTip="Checks Windows again for default apps, and looks again for installed apps and browsers. Default apps are also checked whenever you switch back to this window."/>
                     </StackPanel>
+                    <CheckBox x:Name="RecordDefaultsCheck" Margin="0,14,0,0" Click="RecordDefaults_Click"
+                              Content="Remember which app each file type and link used before App Dispatcher"
+                              ToolTip="So that Unregister and the uninstaller can tell you which apps to choose again in Windows. It's kept only in your settings file on this PC and never sent anywhere. Turning this off deletes what was remembered."/>
                 </StackPanel>
             </TabItem>
 

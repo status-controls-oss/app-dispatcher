@@ -39,8 +39,40 @@ public partial class SettingsWindow : Window
         RefreshRules();
         RefreshExtensions(_config.Extensions.FirstOrDefault());
         RefreshStatus();
-        // Also catches types added before 0.1.4 that the user hasn't switched to App Dispatcher yet.
+        RecordDefaultsCheck.IsChecked = _config.RecordPreviousDefaults == true;
+        ContentRendered += (_, _) =>
+        {
+            if (_config.RecordPreviousDefaults == null) AskAboutRecording();
+            // Also catches types added before 0.1.4 that the user hasn't switched to App Dispatcher yet.
+            SnapshotDefaults(_config.Extensions.Select(x => x.Extension));
+        };
+    }
+
+    /// <summary>The prompt, for the installer and for Settings' first run.</summary>
+    public const string RecordingQuestion =
+        "Remember which app opens each of your file types and links now, before you switch them to App Dispatcher?\n\n" +
+        "Windows doesn't let apps choose default apps, so if you later unregister or uninstall App Dispatcher, " +
+        "you'll need to choose them again yourself. With this on, it can tell you which ones they were.\n\n" +
+        "This is kept only in your settings file on this PC, and never sent anywhere. You can change it on the Windows setup tab.";
+
+    void AskAboutRecording()
+    {
+        var answer = MessageBox.Show(this, RecordingQuestion, "App Dispatcher", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        SetRecording(answer == MessageBoxResult.Yes);
+    }
+
+    void RecordDefaults_Click(object s, RoutedEventArgs e)
+    {
+        SetRecording(RecordDefaultsCheck.IsChecked == true);
         SnapshotDefaults(_config.Extensions.Select(x => x.Extension));
+    }
+
+    void SetRecording(bool on)
+    {
+        _config.RecordPreviousDefaults = on;
+        if (!on) _config.PreviousDefaults.Clear();
+        RecordDefaultsCheck.IsChecked = on;
+        Guarded(_config.Save);
     }
 
     ExtensionRule? SelectedRule => (ExtensionList.SelectedItem as ExtensionRow)?.Rule;
@@ -138,6 +170,7 @@ public partial class SettingsWindow : Window
     /// <summary>Remembers each type's current app before the user switches it to App Dispatcher.</summary>
     void SnapshotDefaults(IEnumerable<string> extensions)
     {
+        if (_config.RecordPreviousDefaults != true) return;
         try
         {
             if (Registration.SnapshotDefaults(_config.PreviousDefaults, extensions)) _config.Save();

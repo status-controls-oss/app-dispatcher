@@ -60,6 +60,9 @@ public class AppConfig
     public List<ExtensionRule> Extensions { get; set; } = new();
     public List<CustomBrowser> CustomBrowsers { get; set; } = new();
 
+    /// <summary>Whether the user agreed to <see cref="PreviousDefaults"/> being recorded. Null until they're asked.</summary>
+    public bool? RecordPreviousDefaults { get; set; }
+
     /// <summary>What opened each file type and link scheme before App Dispatcher, to guide the user in restoring them.</summary>
     public List<PreviousDefault> PreviousDefaults { get; set; } = new();
 

@@ -856,10 +856,17 @@ public class AppConfigTests
         AppConfig.PathOnDisk = tree.File("config.json", """{ "Rules": [] }""");
         try
         {
-            Assert.Empty(AppConfig.Load().PreviousDefaults);
+            var old = AppConfig.Load();
+            Assert.Empty(old.PreviousDefaults);
+            Assert.Null(old.RecordPreviousDefaults); // So Settings asks before recording anything.
 
-            AppConfig.Update(c => c.PreviousDefaults.Add(new PreviousDefault { Key = ".txt", ProgId = "txtfile", Name = "Notepad", Exe = @"C:\Windows\notepad.exe" }));
+            AppConfig.Update(c =>
+            {
+                c.RecordPreviousDefaults = true;
+                c.PreviousDefaults.Add(new PreviousDefault { Key = ".txt", ProgId = "txtfile", Name = "Notepad", Exe = @"C:\Windows\notepad.exe" });
+            });
 
+            Assert.True(AppConfig.Load().RecordPreviousDefaults);
             var saved = AppConfig.Load().PreviousDefaults.Single();
             Assert.Equal((".txt", "txtfile", "Notepad", @"C:\Windows\notepad.exe"), (saved.Key, saved.ProgId, saved.Name, saved.Exe));
         }

@@ -15,7 +15,28 @@ public partial class App : Application
             Shutdown(Unregister());
             return;
         }
+        // The installer asks the user, then passes their answer here so that only this app writes the config.
+        foreach (var (arg, on) in new[] { ($"{RecordArg}=yes", true), ($"{RecordArg}=no", false) })
+            if (e.Args.Contains(arg)) SaveRecordingChoice(on);
         new SettingsWindow().Show();
+    }
+
+    const string RecordArg = "--record-previous-defaults";
+
+    static void SaveRecordingChoice(bool on)
+    {
+        try
+        {
+            AppConfig.Update(c =>
+            {
+                c.RecordPreviousDefaults = on;
+                if (!on) c.PreviousDefaults.Clear();
+            });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Settings asks again on first run, as the choice is still unset.
+        }
     }
 
     /// <summary>

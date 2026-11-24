@@ -87,6 +87,23 @@ function Remove-App {
     Show-RestoreList $restore
 }
 
+# Asks once whether Settings may remember each type's current app. Settings asks instead when this
+# can't, such as when the install isn't interactive. Returns the argument that passes the answer on.
+function Read-RecordingChoice {
+    if (-not $Pause) { return }
+    $config = Join-Path $SettingsDir 'config.json'
+    if (Test-Path -LiteralPath $config -PathType Leaf) {
+        try { if ($null -ne (Get-Content -LiteralPath $config -Raw | ConvertFrom-Json).RecordPreviousDefaults) { return } }
+        catch { return }
+    }
+    Write-Host ''
+    Write-Host 'Windows does not let apps choose default apps. If you later uninstall App Dispatcher, you will need to'
+    Write-Host 'choose the apps for your file types and links again yourself. App Dispatcher can remember which apps'
+    Write-Host 'they use now, so it can tell you. This stays in your settings file on this PC and is never sent anywhere.'
+    $answer = Read-Host 'Remember them? You can change this later in Settings. [Y/n]'
+    if ($answer -match '^\s*n') { '--record-previous-defaults=no' } else { '--record-previous-defaults=yes' }
+}
+
 # Windows doesn't let apps choose defaults, so this lists what to choose again by hand.
 function Show-RestoreList([string[]]$lines) {
     if (-not $lines) { return }
@@ -138,7 +155,11 @@ function Install-App {
     if (-not (Test-DesktopRuntime)) {
         Stop-WithMessage 'Settings needs the .NET 8 Desktop Runtime, which is missing. Install it from https://dotnet.microsoft.com/download/dotnet/8.0, then run AppDispatcher.exe from the folder above.'
     }
-    if (-not $NoLaunch) { Start-Process (Join-Path $InstallDir 'AppDispatcher.Settings.exe') }
+    if (-not $NoLaunch) {
+        $settingsArgs = @(Read-RecordingChoice)
+        $settingsExe = Join-Path $InstallDir 'AppDispatcher.Settings.exe'
+        if ($settingsArgs) { Start-Process $settingsExe -ArgumentList $settingsArgs } else { Start-Process $settingsExe }
+    }
     Write-Host 'To finish, click Register in Settings, add your apps, then choose App Dispatcher in Windows Default Apps. The banners guide you.'
 }
 
