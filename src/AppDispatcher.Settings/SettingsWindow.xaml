@@ -232,10 +232,6 @@
                         <TextBlock Margin="0,4,0,12" TextWrapping="Wrap"
                                    Text="App Dispatcher has no network code. It doesn't check for updates, send telemetry or contact any server, so these links open in your browser and nothing is sent by the app itself."/>
 
-                        <TextBlock FontWeight="SemiBold" Text="Credits"/>
-                        <TextBlock Margin="0,4,0,12" TextWrapping="Wrap"
-                                   Text="The idea for App Dispatcher is Eric's. It started as his WebDispatch, a link picker for browsers and profiles, which this project extends to files and window modes."/>
-
                         <TextBlock FontWeight="SemiBold" Text="AI disclosure"/>
                         <TextBlock Margin="0,4,0,0" TextWrapping="Wrap"
                                    Text="Most of this project's code and documentation was written by Claude, Anthropic's AI model, using Claude Code. A person at Status Controls directed the work, chose its design and tested it."/>
