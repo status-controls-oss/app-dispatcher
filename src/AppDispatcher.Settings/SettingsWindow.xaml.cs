@@ -322,12 +322,12 @@ public partial class SettingsWindow : Window
             AddTarget(new FileTarget { Label = t.Label, Exe = t.Exe, Args = t.Args.ToList(), AppId = t.AppId });
     }
 
-    void BrowseExe_Click(object s, RoutedEventArgs e) => BrowseProgram(CustomExe, CustomLabel);
+    void BrowseExe_Click(object s, RoutedEventArgs e) => BrowseProgram(this, CustomExe, CustomLabel);
 
-    void BrowseProgram(TextBox exe, TextBox label)
+    internal static void BrowseProgram(Window owner, TextBox exe, TextBox label)
     {
         var dialog = new OpenFileDialog { Filter = "Programs (*.exe)|*.exe" };
-        if (dialog.ShowDialog(this) != true) return;
+        if (dialog.ShowDialog(owner) != true) return;
         exe.Text = dialog.FileName;
         if (string.IsNullOrWhiteSpace(label.Text))
             label.Text = Path.GetFileNameWithoutExtension(dialog.FileName);
@@ -433,28 +433,16 @@ public partial class SettingsWindow : Window
         Process.Start(new ProcessStartInfo(url.AbsoluteUri) { UseShellExecute = true });
     }
 
-    void BrowseBrowser_Click(object s, RoutedEventArgs e) => BrowseProgram(BrowserExe, BrowserLabel);
-
     void AddDetected_Click(object s, RoutedEventArgs e)
     {
-        if (DetectedCombo.SelectedItem is CustomBrowser b) TryAddBrowser(b);
+        if (DetectedCombo.SelectedItem is CustomBrowser b) TryAddBrowser(b, this);
     }
 
-    void AddBrowser_Click(object s, RoutedEventArgs e)
-    {
-        var added = TryAddBrowser(new CustomBrowser
-        {
-            Label = BrowserLabel.Text.Trim(),
-            Exe = BrowserExe.Text.Trim().Trim('"'),
-            Args = TargetResolver.ParseArgs(BrowserArgs.Text, BrowserTarget.UrlPlaceholder),
-        });
-        if (!added) return;
-        BrowserLabel.Clear();
-        BrowserExe.Clear();
-        BrowserArgs.Text = BrowserTarget.UrlPlaceholder;
-    }
+    void AddCustomBrowser_Click(object s, RoutedEventArgs e) =>
+        new CustomBrowserWindow(TryAddBrowser) { Owner = this }.ShowDialog();
 
-    bool TryAddBrowser(CustomBrowser browser)
+    /// <param name="owner">Where to show a problem, so it appears over the dialog that caused it.</param>
+    bool TryAddBrowser(CustomBrowser browser, Window owner)
     {
         var problem =
             browser.Label.Length == 0 ? "Enter a label." :
@@ -466,7 +454,7 @@ public partial class SettingsWindow : Window
             null;
         if (problem != null)
         {
-            MessageBox.Show(this, problem, "App Dispatcher", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(owner, problem, "App Dispatcher", MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
 

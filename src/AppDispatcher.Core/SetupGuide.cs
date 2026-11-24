@@ -24,7 +24,7 @@ public static class SetupGuide
     public static string LinkMessage(SetupState state, string? defaultBrowser) => state switch
     {
         SetupState.NotRegistered => "Next: click Register, so that Windows can send links to App Dispatcher.",
-        SetupState.NoApps => "Next: add a browser on the Browsers tab. App Dispatcher has none to open links with.",
+        SetupState.NoApps => "Next: add a browser under Browsers in the picker. App Dispatcher has none to open links with.",
         SetupState.NotDefault => "Last step: Windows still decides how links open, and only you can change that. Click the button, then choose App Dispatcher for HTTP and HTTPS.",
         _ when defaultBrowser == null => "All set: links show the picker unless a rule below says otherwise. Add a rule to send a site straight to one browser.",
         _ => $"All set: links open in {defaultBrowser} unless a rule below says otherwise. Add a rule to show the picker for a site.",

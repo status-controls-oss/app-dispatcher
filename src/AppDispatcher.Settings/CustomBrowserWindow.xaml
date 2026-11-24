@@ -1,0 +1,38 @@
+<Window x:Class="AppDispatcher.Settings.CustomBrowserWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Add a custom browser" Width="520" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        FocusManager.FocusedElement="{Binding ElementName=LabelBox}">
+    <StackPanel Margin="14">
+        <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                   Text="For a browser that isn't found automatically, or to open links in a special mode, such as private browsing. Add one entry for each profile or mode you want in the picker."/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="Label" VerticalAlignment="Center" Margin="0,0,8,4"/>
+            <TextBox x:Name="LabelBox" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,4"
+                     ToolTip="The name shown in the picker."/>
+            <TextBlock Grid.Row="1" Text="Program" VerticalAlignment="Center" Margin="0,0,8,4"/>
+            <TextBox x:Name="ExeBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"
+                     ToolTip="The full path of the browser's .exe file."/>
+            <Button Grid.Row="1" Grid.Column="2" Content="Browse…" Padding="8,0" Margin="6,0,0,4" Click="Browse_Click"
+                    ToolTip="Find the browser's .exe file."/>
+            <TextBlock Grid.Row="2" Text="Arguments" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <TextBox x:Name="ArgsBox" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{}{url}"
+                     ToolTip="What to pass to the browser. {url} is replaced with the link, and added at the end if you leave it out. For example: --incognito {url}"/>
+        </Grid>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="Add" Width="80" IsDefault="True" Click="Add_Click"/>
+            <Button Content="Cancel" Width="80" Margin="8,0,0,0" IsCancel="True"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

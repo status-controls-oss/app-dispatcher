@@ -95,7 +95,7 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Links" ToolTip="What happens when a link opens, and rules for specific sites.">
+            <TabItem Header="Links" ToolTip="What happens when a link opens, and which browsers the picker offers.">
                 <DockPanel Margin="8">
                     <Border x:Name="LinkGuideBanner" DockPanel.Dock="Top" Padding="8,6" Margin="0,0,0,8" CornerRadius="3">
                         <StackPanel>
@@ -122,6 +122,32 @@
                         <TextBox x:Name="TryLinkBox" Text="https://example.com/" VerticalContentAlignment="Center"
                                  ToolTip="A web link to test. Try one that a rule below matches, such as github.com/myorg, to check the rule."/>
                     </DockPanel>
+                    <GroupBox Header="Browsers in the picker, in order" DockPanel.Dock="Bottom" Padding="6" Margin="0,8,0,0">
+                        <DockPanel>
+
+                            <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                                <TextBlock Text="Found on this PC" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <Button DockPanel.Dock="Right" Content="Add custom…" Width="90" Margin="8,0,0,0" Click="AddCustomBrowser_Click"
+                                        ToolTip="Adds a browser that isn't found automatically, or one that opens links in a special mode, such as private browsing."/>
+                                <Button x:Name="AddDetectedButton" DockPanel.Dock="Right" Content="Add" Width="70" Margin="8,0,0,0" Click="AddDetected_Click"
+                                        ToolTipService.ShowOnDisabled="True" ToolTip="Adds the selected browser to the picker."/>
+                                <ComboBox x:Name="DetectedCombo" DisplayMemberPath="Label" ToolTipService.ShowOnDisabled="True"
+                                          ToolTip="Browsers found on this PC that the picker doesn't list yet, with one entry per profile where profiles can be read. Chrome, Edge and Firefox are listed automatically."/>
+                            </DockPanel>
+
+                            <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0" Width="70">
+                                <Button Content="Up" Padding="0,3" Click="BrowserUp_Click"
+                                        ToolTip="Moves the selected browser up. The order here is the order in the picker."/>
+                                <Button Content="Down" Padding="0,3" Margin="0,6,0,0" Click="BrowserDown_Click"
+                                        ToolTip="Moves the selected browser down. The order here is the order in the picker."/>
+                                <Button x:Name="RemoveBrowserButton" Content="Remove" Padding="0,3" Margin="0,6,0,0" Click="RemoveBrowser_Click"
+                                        ToolTipService.ShowOnDisabled="True"
+                                        ToolTip="Removes a browser you added, along with any Always open rules that use it. Chrome, Edge and Firefox are found automatically, so they can only be moved."/>
+                            </StackPanel>
+                            <ListBox x:Name="BrowserList" Height="100" DisplayMemberPath="Display" SelectionChanged="BrowserList_SelectionChanged"
+                                     ToolTip="Every browser and profile the picker offers, in the order it lists them. Chrome, Edge and Firefox are found automatically, with one row per profile."/>
+                        </DockPanel>
+                    </GroupBox>
                     <GroupBox Header="Add rule" DockPanel.Dock="Bottom" Padding="8" Margin="0,8,0,0">
                         <DockPanel>
                             <Button DockPanel.Dock="Right" Content="Update selected" Padding="8,0" Margin="8,0,0,0" Click="UpdateRule_Click"
@@ -148,62 +174,6 @@
                             </DataGrid.Columns>
                         </DataGrid>
                     </GroupBox>
-                </DockPanel>
-            </TabItem>
-
-            <TabItem Header="Browsers" ToolTip="Which browsers and profiles the picker offers for links, and in what order.">
-                <DockPanel Margin="8">
-                    <TextBlock DockPanel.Dock="Top" Text="Browsers shown in the picker, in order" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" TextWrapping="Wrap"
-                               Text="Chrome, Edge and Firefox are found automatically, with one row per profile. Add any other browser below."/>
-
-                    <GroupBox DockPanel.Dock="Bottom" Header="Add a custom browser" Padding="6" Margin="0,8,0,0">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition/>
-                                <RowDefinition/>
-                                <RowDefinition/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Text="Label" VerticalAlignment="Center" Margin="0,0,8,4"/>
-                            <TextBox x:Name="BrowserLabel" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,4"
-                                     ToolTip="The name shown in the picker."/>
-                            <TextBlock Grid.Row="1" Text="Program" VerticalAlignment="Center" Margin="0,0,8,4"/>
-                            <TextBox x:Name="BrowserExe" Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"
-                                     ToolTip="The full path of the browser's .exe file."/>
-                            <Button Grid.Row="1" Grid.Column="2" Content="Browse…" Padding="8,0" Margin="6,0,0,4" Click="BrowseBrowser_Click"
-                                    ToolTip="Find the browser's .exe file."/>
-                            <TextBlock Grid.Row="2" Text="Arguments" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBox x:Name="BrowserArgs" Grid.Row="2" Grid.Column="1" Text="{}{url}"
-                                     ToolTip="What to pass to the browser. {url} is replaced with the link, and added at the end if you leave it out. For example: --incognito {url}"/>
-                            <Button Grid.Row="2" Grid.Column="2" Content="Add" Padding="8,0" Margin="6,0,0,0" Click="AddBrowser_Click"
-                                    ToolTip="Adds the browser described in these boxes to the picker."/>
-                        </Grid>
-                    </GroupBox>
-
-                    <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
-                        <TextBlock Text="Found on this PC" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <Button x:Name="AddDetectedButton" DockPanel.Dock="Right" Content="Add" Width="50" Margin="6,0,0,0" Click="AddDetected_Click"
-                                ToolTipService.ShowOnDisabled="True" ToolTip="Adds the selected browser to the picker."/>
-                        <ComboBox x:Name="DetectedCombo" DisplayMemberPath="Label" ToolTipService.ShowOnDisabled="True"
-                                  ToolTip="Browsers found on this PC that the picker doesn't list yet, with one entry per profile where profiles can be read."/>
-                    </DockPanel>
-
-                    <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0" Width="70">
-                        <Button Content="Up" Padding="0,3" Click="BrowserUp_Click"
-                                ToolTip="Moves the selected browser up. The order here is the order in the picker."/>
-                        <Button Content="Down" Padding="0,3" Margin="0,6,0,0" Click="BrowserDown_Click"
-                                ToolTip="Moves the selected browser down. The order here is the order in the picker."/>
-                        <Button x:Name="RemoveBrowserButton" Content="Remove" Padding="0,3" Margin="0,6,0,0" Click="RemoveBrowser_Click"
-                                ToolTipService.ShowOnDisabled="True"
-                                ToolTip="Removes a browser you added, along with any Always open rules that use it. Chrome, Edge and Firefox are found automatically, so they can only be moved."/>
-                    </StackPanel>
-                    <ListBox x:Name="BrowserList" DisplayMemberPath="Display" SelectionChanged="BrowserList_SelectionChanged"
-                             ToolTip="Every browser and profile the picker offers, in the order it lists them."/>
                 </DockPanel>
             </TabItem>
 
