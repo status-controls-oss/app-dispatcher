@@ -60,6 +60,9 @@ public class AppConfig
     public List<ExtensionRule> Extensions { get; set; } = new();
     public List<CustomBrowser> CustomBrowsers { get; set; } = new();
 
+    /// <summary>The picker's browser order, by <see cref="BrowserTarget.OrderKey"/>. Empty keeps the usual order.</summary>
+    public List<string> BrowserOrder { get; set; } = new();
+
     /// <summary>Whether the user agreed to <see cref="PreviousDefaults"/> being recorded. Null until they're asked.</summary>
     public bool? RecordPreviousDefaults { get; set; }
 

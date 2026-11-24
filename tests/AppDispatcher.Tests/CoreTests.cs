@@ -981,3 +981,33 @@ public class TryLinkTests
     public void Only_web_links_are_handed_to_Windows(string typed, string? expected) =>
         Assert.Equal(expected, Launcher.WebLink(typed)?.AbsoluteUri);
 }
+
+public class BrowserOrderTests
+{
+    static BrowserTarget B(string browser, string profile = "") => new() { Browser = browser, ProfileId = profile };
+
+    static string[] Keys(IEnumerable<BrowserTarget> list) => list.Select(b => b.OrderKey).ToArray();
+
+    [Fact]
+    public void Follows_the_chosen_order_and_puts_new_browsers_after_it_in_their_usual_order()
+    {
+        var found = new[] { B("Chrome", "Default"), B("Chrome", "Profile 1"), B("Edge", "Default"), B("Brave") };
+
+        var ordered = BrowserDiscovery.InOrder(found, new List<string> { "Brave|", "edge|default" });
+
+        Assert.Equal(new[] { "Brave|", "Edge|Default", "Chrome|Default", "Chrome|Profile 1" }, Keys(ordered));
+    }
+
+    [Fact]
+    public void Browsers_that_are_gone_are_ignored()
+    {
+        var ordered = BrowserDiscovery.InOrder(new[] { B("Chrome", "Default"), B("Edge", "Default") },
+            new List<string> { "Removed|", "Edge|Default", "Edge|Default" });
+
+        Assert.Equal(new[] { "Edge|Default", "Chrome|Default" }, Keys(ordered));
+    }
+
+    [Fact]
+    public void Profile_ids_match_whatever_their_case_like_rules_do() =>
+        Assert.True(B("Chrome", "Profile 1").Matches("Chrome", "profile 1"));
+}

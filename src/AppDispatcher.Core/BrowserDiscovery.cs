@@ -17,6 +17,9 @@ public class BrowserTarget
 
     public string Display => ProfileName.Length == 0 ? Browser : $"{Browser} — {ProfileName}";
 
+    /// <summary>Identifies this row in <see cref="AppConfig.BrowserOrder"/>.</summary>
+    public string OrderKey => $"{Browser}|{ProfileId}";
+
     public bool Matches(string browser, string profileId) =>
         Browser == browser && string.Equals(ProfileId, profileId, StringComparison.OrdinalIgnoreCase);
 
@@ -34,12 +37,31 @@ public class BrowserTarget
 
 public static class BrowserDiscovery
 {
-    /// <summary>Installed browsers' profiles, followed by the custom browsers that are still usable.</summary>
-    public static List<BrowserTarget> Discover(IEnumerable<CustomBrowser> custom, string? selfExe)
+    /// <summary>
+    /// Installed browsers' profiles, followed by the custom browsers that are still usable,
+    /// rearranged into the order chosen in Settings.
+    /// </summary>
+    public static List<BrowserTarget> Discover(IEnumerable<CustomBrowser> custom, string? selfExe, IReadOnlyList<string>? order = null)
     {
         var list = DiscoverInstalled();
         list.AddRange(FromCustom(custom, selfExe));
-        return list;
+        return order is { Count: > 0 } ? InOrder(list, order) : list;
+    }
+
+    /// <summary>
+    /// Puts browsers in the chosen order. Ones that aren't in it yet, such as a newly found profile,
+    /// keep their usual order after the rest.
+    /// </summary>
+    public static List<BrowserTarget> InOrder(IEnumerable<BrowserTarget> browsers, IReadOnlyList<string> order)
+    {
+        var rank = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < order.Count; i++) rank.TryAdd(order[i], i);
+        return browsers
+            .Select((b, i) => (Browser: b, Index: i))
+            .OrderBy(x => rank.TryGetValue(x.Browser.OrderKey, out var r) ? r : int.MaxValue)
+            .ThenBy(x => x.Index)
+            .Select(x => x.Browser)
+            .ToList();
     }
 
     /// <summary>Drops an app that is no longer installed, a script, or the dispatcher itself, which would reopen the picker forever.</summary>

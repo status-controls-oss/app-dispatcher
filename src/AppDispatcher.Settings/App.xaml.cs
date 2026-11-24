@@ -1,4 +1,8 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Windows;
 using AppDispatcher.Core;
@@ -15,6 +19,11 @@ public partial class App : Application
             Shutdown(Unregister());
             return;
         }
+        if (AlreadyOpen())
+        {
+            Shutdown(0);
+            return;
+        }
         // The installer asks the user, then passes their answer here so that only this app writes the config.
         foreach (var (arg, on) in new[] { ($"{RecordArg}=yes", true), ($"{RecordArg}=no", false) })
             if (e.Args.Contains(arg)) SaveRecordingChoice(on);
@@ -22,6 +31,50 @@ public partial class App : Application
     }
 
     const string RecordArg = "--record-previous-defaults";
+
+    /// <summary>Held while this window is open, so the picker's gear can't open a second one.</summary>
+    static Mutex? _instance;
+
+    /// <summary>
+    /// Whether this install's Settings is already open, in which case that window is brought forward.
+    /// Per folder, so a test build doesn't stand in for the installed one.
+    /// </summary>
+    static bool AlreadyOpen()
+    {
+        var folder = AppContext.BaseDirectory.TrimEnd('\\').ToLowerInvariant();
+        var id = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(folder)))[..16];
+        _instance = new Mutex(true, $@"Local\AppDispatcher.Settings.{id}", out var created);
+        if (created) return false;
+        BringForward();
+        return true;
+    }
+
+    static void BringForward()
+    {
+        var self = Environment.ProcessPath;
+        var myId = Environment.ProcessId;
+        foreach (var process in Process.GetProcessesByName("AppDispatcher.Settings"))
+        {
+            using (process)
+            {
+                if (process.Id == myId) continue;
+                string? path;
+                try { path = process.MainModule?.FileName; }
+                catch (Exception ex) when (ex is Win32Exception or InvalidOperationException) { continue; }
+                var window = process.MainWindowHandle;
+                if (window == 0 || !string.Equals(path, self, StringComparison.OrdinalIgnoreCase)) continue;
+                if (IsIconic(window)) ShowWindow(window, SwRestore);
+                SetForegroundWindow(window);
+                return;
+            }
+        }
+    }
+
+    const int SwRestore = 9;
+
+    [DllImport("user32")] static extern bool IsIconic(nint window);
+    [DllImport("user32")] static extern bool ShowWindow(nint window, int command);
+    [DllImport("user32")] static extern bool SetForegroundWindow(nint window);
 
     static void SaveRecordingChoice(bool on)
     {

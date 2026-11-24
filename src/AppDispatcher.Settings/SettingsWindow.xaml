@@ -122,7 +122,7 @@
                         <TextBox x:Name="TryLinkBox" Text="https://example.com/" VerticalContentAlignment="Center"
                                  ToolTip="A web link to test. Try one that a rule below matches, such as github.com/myorg, to check the rule."/>
                     </DockPanel>
-                    <GroupBox Header="Other browsers (Chrome, Edge and Firefox are added automatically)" DockPanel.Dock="Bottom" Padding="6" Margin="0,8,0,0">
+                    <GroupBox Header="Browsers in the picker (Chrome, Edge and Firefox are found automatically)" DockPanel.Dock="Bottom" Padding="6" Margin="0,8,0,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="220"/>
@@ -146,10 +146,18 @@
                                           ToolTip="Browsers found on this PC that the picker doesn't list yet, with one entry per profile where profiles can be read."/>
                             </DockPanel>
 
-                            <ListBox x:Name="CustomBrowserList" Grid.Row="1" Grid.RowSpan="3" DisplayMemberPath="Label" Margin="0,0,10,4"
-                                     ToolTip="Browsers you've added. They appear in the picker after Chrome, Edge and Firefox."/>
-                            <Button Grid.Row="4" Content="Remove" HorizontalAlignment="Left" Padding="10,0" Margin="0,0,10,0" Click="RemoveBrowser_Click"
-                                    ToolTip="Removes the selected browser from the picker, along with any Always open rules that use it."/>
+                            <ListBox x:Name="BrowserList" Grid.Row="1" Grid.RowSpan="3" DisplayMemberPath="Display" Margin="0,0,10,4"
+                                     SelectionChanged="BrowserList_SelectionChanged"
+                                     ToolTip="Every browser and profile the picker offers, in the order it lists them."/>
+                            <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,10,0">
+                                <Button Content="Up" Padding="10,0" Click="BrowserUp_Click"
+                                        ToolTip="Moves the selected browser up. The order here is the order in the picker."/>
+                                <Button Content="Down" Padding="10,0" Margin="6,0,0,0" Click="BrowserDown_Click"
+                                        ToolTip="Moves the selected browser down. The order here is the order in the picker."/>
+                                <Button x:Name="RemoveBrowserButton" Content="Remove" Padding="10,0" Margin="6,0,0,0" Click="RemoveBrowser_Click"
+                                        ToolTipService.ShowOnDisabled="True"
+                                        ToolTip="Removes a browser you added, along with any Always open rules that use it. Chrome, Edge and Firefox are found automatically, so they can only be moved."/>
+                            </StackPanel>
 
                             <TextBlock Grid.Row="1" Grid.Column="1" Text="Label" VerticalAlignment="Center" Margin="0,0,8,4"/>
                             <TextBox x:Name="BrowserLabel" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Margin="0,0,0,4"

@@ -57,7 +57,7 @@ internal static class Program
     static int OpenUrl(Uri url)
     {
         var config = AppConfig.Load();
-        var browsers = BrowserDiscovery.Discover(config.CustomBrowsers, Environment.ProcessPath);
+        var browsers = BrowserDiscovery.Discover(config.CustomBrowsers, Environment.ProcessPath, config.BrowserOrder);
         // A browser that's no longer available falls through to the picker rather than losing the link.
         var direct = config.BrowserWithoutAsking(url);
         var target = direct is { } d ? browsers.FirstOrDefault(b => b.Matches(d.Browser, d.ProfileId)) : null;

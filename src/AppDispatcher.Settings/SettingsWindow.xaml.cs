@@ -12,6 +12,9 @@ public partial class SettingsWindow : Window
 {
     sealed record ExtensionRow(ExtensionRule Rule, string Display);
 
+    /// <summary>A browser in the picker, or an added one whose program is missing, which has no target.</summary>
+    sealed record BrowserRow(string Display, BrowserTarget? Target, CustomBrowser? Custom);
+
     const string ProgramNotAllowed = "Choose an .exe program by its full path. Scripts such as .cmd and .bat files, and programs that run commands such as cmd.exe, PowerShell and Windows Terminal, aren't allowed because a link or file name could run commands through them.";
 
     readonly AppConfig _config = AppConfig.Load();
@@ -377,7 +380,7 @@ public partial class SettingsWindow : Window
     void RefreshBrowsers()
     {
         var selected = (BrowserCombo.SelectedItem as BrowserTarget)?.Display;
-        var browsers = BrowserDiscovery.Discover(_config.CustomBrowsers, _pickerExe);
+        var browsers = BrowserDiscovery.Discover(_config.CustomBrowsers, _pickerExe, _config.BrowserOrder);
         var showPicker = new BrowserTarget { Browser = Rule.ShowPicker };
         var options = browsers.Prepend(showPicker).ToList();
         BrowserCombo.ItemsSource = options;
@@ -393,8 +396,7 @@ public partial class SettingsWindow : Window
         _loadingDefaultLink = false;
         RefreshLinkGuide();
 
-        CustomBrowserList.ItemsSource = null;
-        CustomBrowserList.ItemsSource = _config.CustomBrowsers;
+        RefreshBrowserList(browsers, (BrowserList.SelectedItem as BrowserRow)?.Display);
 
         // Removing a browser offers it again, because this filters the list found at startup.
         var offered = _detectedBrowsers
@@ -474,10 +476,48 @@ public partial class SettingsWindow : Window
         return true;
     }
 
+    void RefreshBrowserList(List<BrowserTarget> browsers, string? select)
+    {
+        CustomBrowser? AddedAs(BrowserTarget t) =>
+            t.CustomArgs == null ? null : _config.CustomBrowsers.FirstOrDefault(c => c.Label == t.Browser);
+        var rows = browsers.Select(t => new BrowserRow(t.Display, t, AddedAs(t))).ToList();
+        // Still listed, so that one whose program has gone can be removed.
+        rows.AddRange(_config.CustomBrowsers
+            .Where(c => !rows.Any(r => r.Custom == c))
+            .Select(c => new BrowserRow($"{c.Label} (program not found)", null, c)));
+        BrowserList.ItemsSource = rows;
+        BrowserList.SelectedItem = rows.FirstOrDefault(r => r.Display == select);
+        RefreshBrowserButtons();
+    }
+
+    void BrowserList_SelectionChanged(object s, SelectionChangedEventArgs e) => RefreshBrowserButtons();
+
+    void RefreshBrowserButtons() => RemoveBrowserButton.IsEnabled = (BrowserList.SelectedItem as BrowserRow)?.Custom != null;
+
+    void BrowserUp_Click(object s, RoutedEventArgs e) => MoveBrowser(-1);
+
+    void BrowserDown_Click(object s, RoutedEventArgs e) => MoveBrowser(1);
+
+    /// <summary>Saves the whole order, so that browsers found later go after the ones arranged here.</summary>
+    void MoveBrowser(int delta)
+    {
+        if (BrowserList.SelectedItem is not BrowserRow { Target: { } moving } ||
+            BrowserList.ItemsSource is not List<BrowserRow> rows) return;
+        var order = rows.Where(r => r.Target != null).Select(r => r.Target!.OrderKey).ToList();
+        var from = order.IndexOf(moving.OrderKey);
+        var to = from + delta;
+        if (to < 0 || to >= order.Count) return;
+        (order[from], order[to]) = (order[to], order[from]);
+        _config.BrowserOrder = order;
+        Commit();
+        RefreshBrowsers(); // Keeps the moved row selected.
+    }
+
     void RemoveBrowser_Click(object s, RoutedEventArgs e)
     {
-        if (CustomBrowserList.SelectedItem is not CustomBrowser b) return;
+        if ((BrowserList.SelectedItem as BrowserRow)?.Custom is not { } b) return;
         _config.CustomBrowsers.Remove(b);
+        _config.BrowserOrder.Remove(new BrowserTarget { Browser = b.Label }.OrderKey);
         // A rule for a browser that's gone could never fire again.
         _config.Rules.RemoveAll(r => r.Browser == b.Label && r.ProfileId.Length == 0);
         if (_config.DefaultBrowser == b.Label && string.IsNullOrEmpty(_config.DefaultProfileId))
