@@ -126,20 +126,14 @@ To add one by hand, give it a label, a program and arguments. `{url}` is replace
 
 These browsers appear after Chrome, Edge and Firefox, and one whose program is missing is hidden. Removing one also removes its "Always open" rules.
 
-## Why two executables
+## Why two programs
 
-Startup time decides whether this is worth using, so the two jobs are built differently:
+App Dispatcher is two programs, because their jobs are different:
 
-| Exe | Built with | Time to visible window |
-|---|---|---|
-| `AppDispatcher.exe` (picker) | Native AOT, raw Win32 | ~30 ms |
-| A comparable WPF picker | WPF, JIT | ~450 ms |
-| The same WPF picker with ReadyToRun | WPF, precompiled | ~440 ms |
-| `AppDispatcher.Settings.exe` | WPF | Not measured; speed doesn't matter here |
+- **`AppDispatcher.exe`, the picker**, runs every time you open a file or link, so it has to appear instantly. It's compiled to native code and draws its own window, so it opens in about 30 ms and doesn't need .NET installed. A picker built like a typical .NET app took about 450 ms, which is slow enough to feel worse than Windows' own **Open with** menu.
+- **`AppDispatcher.Settings.exe`** is where you set things up. It's an ordinary .NET app, which is why it needs the .NET 8 Desktop Runtime.
 
-Measured from process start to window visible, with warm disk caches. ReadyToRun barely helps because WPF's own startup dominates, and WPF can't be compiled with Native AOT. A later test that launches and polls from PowerShell reads higher, with medians of 44–62 ms for this picker, so only compare times taken the same way.
-
-To keep it fast, the picker paints before loading icons, which arrive from a background thread, and it draws its gear in code rather than loading a symbol font. It saves state only after launching the chosen app. Finding browsers and file handlers scans the registry and disk, so that happens only in Settings.
+The picker shows its window before loading app icons, and saves your choice only after starting the app. Slower work, such as searching the registry and disk for installed apps and browsers, happens only in Settings.
 
 ## Layout
 
