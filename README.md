@@ -4,6 +4,11 @@ Makes Windows ask which app should open a file or link. Register it as the defau
 
 It grew out of Eric's WebDispatch, whose link handling it keeps and extends: links can show a picker of browsers and profiles, or go straight to a default browser, with rules for specific sites either way.
 
+<p>
+  <img src="docs/images/picker-qsys.png" width="400" alt="The picker for a .qsys file, listing six installed versions of Q-SYS Designer">
+  <img src="docs/images/picker-link.png" width="400" alt="The picker for a GitHub link, listing Chrome and Edge profiles, with the option to always open github.com this way">
+</p>
+
 ## Using the picker
 
 | Input | Action |
@@ -27,6 +32,8 @@ Requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotn
 5. Click **Open Windows Default Apps** on the banner or **Windows setup**, and choose App Dispatcher for each type (and HTTP/HTTPS for links). Windows doesn't allow apps to set this themselves. Until you do, Windows may ask how to open that type, or keep using its current app.
 
 The banners on **File types** and **Links** show what's still needed. **Refresh status** checks again, and also looks for newly installed apps and browsers. **Windows has** lists the apps Windows already associates with that type, such as each installed version of an app, so most can be added without finding the program yourself. Microsoft Store apps aren't listed, because they can't be launched by a command line this way.
+
+![Settings, File types tab: .qsys set to offer six versions of Q-SYS Designer](docs/images/settings-file-types.png)
 
 Settings' **About** tab shows the version, license and links for help and for reporting problems.
 
@@ -72,7 +79,11 @@ gh attestation verify .\AppDispatcher-<version>-win-x64.zip --repo status-contro
 
 ## Window modes
 
-Each picker row is an app plus a way of invoking it. These are built in:
+Each picker row is an app plus a way of invoking it, so one editor can appear more than once:
+
+<img src="docs/images/picker-md.png" width="420" alt="The picker for README.md, offering VS Code in an existing or new window, Rider with the file's solution or folder, and Notepad++">
+
+These are built in:
 
 | App | Modes |
 |---|---|
@@ -97,6 +108,8 @@ Declining Rider's trust prompt still opens the file, in your current Rider windo
 ## Browsers
 
 **Links without a rule**, at the top of the Links tab, decides what most links do: show the picker, or open a chosen browser straight away. Rules then handle the exceptions, either way round:
+
+![Settings, Links tab: links without a rule show the picker, and rules send github.com and portal.azure.com to work profiles](docs/images/settings-links.png)
 
 | Links without a rule | Add a rule to |
 |---|---|
